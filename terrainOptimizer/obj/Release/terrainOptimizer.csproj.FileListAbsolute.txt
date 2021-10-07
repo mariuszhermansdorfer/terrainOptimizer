@@ -1,0 +1,6 @@
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\terrainOptimizer.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\terrainOptimizer.pdb
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.csprojAssemblyReference.cache
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.csproj.CoreCompileInputs.cache
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.pdb
