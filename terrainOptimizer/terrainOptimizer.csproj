@@ -59,7 +59,9 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\GHC_MeshFlow.cs" />
     <Compile Include="Components\GHC_terrainOptimizer.cs" />
+    <Compile Include="Components\MeshSplit.cs" />
     <Compile Include="Helpers\Structs.cs" />
     <Compile Include="terrainOptimizerInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
