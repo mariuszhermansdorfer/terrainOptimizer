@@ -31,38 +31,34 @@ namespace terrainOptimizer
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("base", "", "", GH_ParamAccess.item);
-            pManager.AddMeshParameter("cut", "", "", GH_ParamAccess.item);
+            pManager.AddMeshParameter("cut", "", "", GH_ParamAccess.list);
             pManager.AddMeshParameter("fill", "", "", GH_ParamAccess.list);
             pManager.AddCurveParameter("outline", "", "", GH_ParamAccess.item);
             pManager.AddPointParameter("point", "", "", GH_ParamAccess.list);
+            pManager.AddBoxParameter("box", "", "", GH_ParamAccess.list);
+            pManager.AddMeshParameter("new terrain", "", "", GH_ParamAccess.item);
         }
 
-        List<int> boundingBoxSearchResults;
+        HashSet<int> _facesToDelete;
+        HashSet<int> _facesOnEdge;
+        List<Rectangle3d> _rectanglesFullyInside;
+        List<Rectangle3d> _rectanglesOnEdge;
+        Queue<Rectangle3d> _rectanglesToAnalyse;
+        Dictionary<Point3d, bool> _vertices;
+
         RTree tree;
-        Mesh existingGround;
-        Curve newTopography;
-        Polyline[] intersections;
-        Polyline[] polyOverlaps;
-        Mesh meshOverlaps;
-        System.Threading.CancellationToken token;
+        Mesh baseTerrain;
+        Curve newTerrain;
+
         double slopeCut;
         double slopeFill;
-        double precision = 0.01;
-        IProgress<double> progress;
-        Rhino.FileIO.TextLog textLog;
-
-//Offset: 6 ms -> Check clipper
-//Loft: 1 ms
-//Search: 4 ms
-//Intersect: 31 ms -> find different approach?
-//Mesh: 1 ms
-//Total: 0 ms
+        double maxDistance = 100;
 
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData(0, ref existingGround);
-            DA.GetData(1, ref newTopography);
+            DA.GetData(0, ref baseTerrain);
+            DA.GetData(1, ref newTerrain);
             DA.GetData(2, ref slopeCut);
             DA.GetData(3, ref slopeFill);
 
@@ -70,196 +66,297 @@ namespace terrainOptimizer
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
 
-            if (tree == null)
-                tree = RTree.CreateMeshFaceTree(existingGround);
 
-            double distance = 5;
-            var offsetCurve = newTopography.Offset(Point3d.Origin, Vector3d.ZAxis, 5, 0.01, CurveOffsetCornerStyle.None);
-            offsetCurve[0].Translate(Vector3d.ZAxis * -distance * slopeFill);
-            Rhino.RhinoApp.WriteLine("Offset: " + sw.ElapsedMilliseconds + " ms");
-            sw.Restart();
+            List<List<Point3d>> fillInsidePoints = new List<List<Point3d>> { new List<Point3d>() };
+            List<List<Point3d>> fillOutsidePoints = new List<List<Point3d>> { new List<Point3d>() };
+            List<List<Point3d>> cutInsidePoints = new List<List<Point3d>> { new List<Point3d>() };
+            List<List<Point3d>> cutOutsidePoints = new List<List<Point3d>> { new List<Point3d>() };
 
-
-
-            var loft = Brep.CreateFromLoft(new Curve[] { newTopography, offsetCurve[0] }, Point3d.Unset, Point3d.Unset, LoftType.Normal, false);
-            Mesh _mesh = Mesh.CreateFromBrep(loft[0], MeshingParameters.FastRenderMesh)[0];
-            Rhino.RhinoApp.WriteLine("Loft: " + sw.ElapsedMilliseconds + " ms");
-            sw.Restart();
-
-            var box = _mesh.GetBoundingBox(false);
-
-            var xform = Transform.Scale(new Plane(box.Center, Vector3d.ZAxis), 1, 1, 1000); // Stretch in the Z-Axis to extend the search area
-            box.Transform(xform);
-            boundingBoxSearchResults = new List<int>();
-            tree.Search(box, BoundingBoxCallback);
-
-            //RTree cutterTree = RTree.CreateMeshFaceTree(_mesh);
-            //RTree.SearchOverlaps(tree, cutterTree, 0.1, BoundingBoxCallback);
-
-            var cutout = new Mesh();
-            cutout.CopyFrom(existingGround);
-            cutout.Faces.Clear();
-            foreach (var face in boundingBoxSearchResults)
-                cutout.Faces.AddFace(existingGround.Faces[face]);
-
-            Rhino.RhinoApp.WriteLine("Search: " + sw.ElapsedMilliseconds + " ms");
-            sw.Restart();
-
-
-            Polyline top1 = newTopography.ToPolyline(-1, -1, 0.1, 0.1, 1, 0, 0.1, 2, false).ToPolyline();
-            top1.DeleteShortSegments(0.1);
-
-            List<Point3d> points = new List<Point3d>();
-            for (int i = 0; i < top1.Count - 1; i++)
-            {
-                var ray = new Ray3d(top1[i], Vector3d.ZAxis * -1);
-                var mrx = Rhino.Geometry.Intersect.Intersection.MeshRay(existingGround, ray);
-                points.Add(ray.PointAt(mrx));
-            }
-            
-
-
-            Rhino.RhinoApp.WriteLine("Ray: " + sw.ElapsedMilliseconds + " ms");
-            sw.Restart();
-
-            List<Mesh> intersectionMeshes = new List<Mesh> { cutout, _mesh };
-            Rhino.Geometry.Intersect.Intersection.MeshMesh(intersectionMeshes, 0.00001, out intersections, false, out _, false, out _, null, token, null);
-
-            Rhino.RhinoApp.WriteLine("Intersect: " + sw.ElapsedMilliseconds + " ms");
-            sw.Restart();
-
-            List<Curve> joinedCurves = new List<Curve>();
-            foreach (var poly in intersections)
-                joinedCurves.Add(poly.ToNurbsCurve());
-
-            var test = Curve.JoinCurves(joinedCurves, 0.1, false);
-            joinedCurves.Clear();
-            foreach (var curve in test)
-                if (curve.GetLength() > 0.1)
-                    joinedCurves.Add(curve);
+            Polyline insidePolyline = newTerrain.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.005, 0.5, false).ToPolyline();
+            Polyline outline = CreateCutFillOutlinePoints(insidePolyline, cutInsidePoints, cutOutsidePoints, fillInsidePoints, fillOutsidePoints);
+            if (!outline.IsClosed)
+                outline.Add(outline[0]);
 
             List<Mesh> meshesFill = new List<Mesh>();
-            Curve[] result = null;
-            Point3d pt = new Point3d();
-            Polyline bottom = null;
+            MergeFirstAndLast(fillInsidePoints, fillOutsidePoints, out bool close);
+            CreateMeshes(meshesFill, fillInsidePoints, fillOutsidePoints, close);
 
-            if (joinedCurves.Count == 1 && joinedCurves[0].IsClosed) // newTerrain is completely above existing ground
-            {
-                //if (!Curve.DoDirectionsMatch(joinedCurves[0], newTopography))
-                //    joinedCurves[0].Reverse();
-
-                //double start;
-                //joinedCurves[0].ClosestPoint(newTopography.PointAtStart, out start);
-                //joinedCurves[0].ChangeClosedCurveSeam(start);
-                //loft = Brep.CreateFromLoftRebuild(new Curve[] { newTopography, joinedCurves[0] }, Point3d.Unset, Point3d.Unset, LoftType.Normal, false, 100);
-                //var mesh = Mesh.CreateFromBrep(loft[0], MeshingParameters.FastRenderMesh);
-                //meshesFill.Add(mesh[0]);
+            List<Mesh> meshesCut = new List<Mesh>();
+            MergeFirstAndLast(cutInsidePoints, cutOutsidePoints, out close);
+            CreateMeshes(meshesCut, cutInsidePoints, cutOutsidePoints, close);
 
 
+            Rhino.RhinoApp.WriteLine("Cut & Fill mesh: " + sw.ElapsedMilliseconds + " ms");
+            sw.Restart();
 
+            var box = outline.BoundingBox;
 
-                Polyline top = newTopography.ToPolyline(-1, -1, 0.1, 0.1, 1, 0, 0.1, 2, false).ToPolyline();
-                top.DeleteShortSegments(0.1);
+            if (tree == null)
+                tree = RTree.CreateMeshFaceTree(baseTerrain);
 
-                // Intersect curve normal with the other curve and realign their starting points.
+            _rectanglesFullyInside = new List<Rectangle3d>();
+            _rectanglesOnEdge = new List<Rectangle3d>();
+            _rectanglesToAnalyse = new Queue<Rectangle3d>();
+            _vertices = new Dictionary<Point3d, bool>();
+            
+            var rectangle = new Rectangle3d(Plane.WorldXY, box.Corner(true, true, true), box.Corner(false, false, true));
+            var initial = SubdivideRectangle(rectangle);
 
-                if (!Curve.DoDirectionsMatch(joinedCurves[0], newTopography))
-                    joinedCurves[0].Reverse();
-                var normal = Vector3d.CrossProduct(newTopography.TangentAtStart, Vector3d.ZAxis);
-                normal.Unitize();
+            PushRectanglesToQueue(initial, _rectanglesToAnalyse);
+            int maxIterations = 20;
+            var outlineMesh = Mesh.CreateFromClosedPolyline(outline);
 
-                if (newTopography.Contains(newTopography.PointAtStart + normal * 0.1, Plane.WorldXY, 0.01) == PointContainment.Inside)
-                    normal.Reverse();
+            FindRectanglesInsideMesh(_rectanglesToAnalyse, outlineMesh, maxIterations);
 
-                var line = new Line(newTopography.PointAtStart - Vector3d.ZAxis * 100, newTopography.PointAtStart + Vector3d.ZAxis * 100).ToNurbsCurve();
-                var extrusion = Surface.CreateExtrusion(line, normal * 15);
+            _facesToDelete = new HashSet<int>();
+            foreach (var re in _rectanglesFullyInside)
+                tree.Search(ScaleBoundingBox(re), FindFacesToDelete);
 
-                var intersection = Rhino.Geometry.Intersect.Intersection.CurveSurface(joinedCurves[0], extrusion, 0.01, 0.1);
+            _facesOnEdge = new HashSet<int>();
+            foreach (var re in _rectanglesOnEdge)
+                tree.Search(ScaleBoundingBox(re), FindFacesOnEdge);
 
-                double start;
-                joinedCurves[0].ClosestPoint(intersection[0].PointA, out start);
-                joinedCurves[0].ChangeClosedCurveSeam(start);
+            CheckFaceContainment(_facesOnEdge, outlineMesh);
 
-                bottom = joinedCurves[0].ToPolyline(-1, -1, 0.1, 0.1, 1, 0, 0.1, 2, false).ToPolyline();
-                bottom.DeleteShortSegments(0.1);
+            baseTerrain.Faces.ExtractFaces(_facesToDelete);
 
-                int current = 1;
-                Mesh finalMesh = new Mesh();
-                finalMesh.Vertices.AddVertices(bottom);
-                finalMesh.Vertices.AddVertices(top);
-
-                finalMesh.Faces.AddFace(0, bottom.Count + 1, bottom.Count);
-                for (int i = 1; i < bottom.Count ; i++)
-                {
-                    int topIndex = bottom.Count + current;
-
-                    if(current == top.Count - 1)
-                    {
-                        finalMesh.Faces.AddFace(i, topIndex, i - 1);
-                    }
-                    else if (bottom[i].DistanceToSquared(top[current]) < bottom[i].DistanceToSquared(top[current + 1]))
-                        finalMesh.Faces.AddFace(i, topIndex, i - 1);
-                    else
-                    {
-                        finalMesh.Faces.AddFace(i, topIndex + 1, i - 1);
-                        finalMesh.Faces.AddFace(topIndex + 1, topIndex, i - 1);
-                        current++;
-                    }
-                }
-                finalMesh.Faces.AddFace(bottom.Count - 1, 0, bottom.Count);
-                finalMesh.Faces.AddFace(bottom.Count, bottom.Count + current, bottom.Count - 1);
-
-                finalMesh.RebuildNormals();
-                meshesFill.Add(finalMesh);
-
-
-                Rhino.RhinoApp.WriteLine("Mesh: " + sw.ElapsedMilliseconds + " ms");
-                sw.Restart();
-            }
-            else
-            {
-                //for (int i = 0; i < joinedCurves.Count; i++)
-                foreach (var joinedCurve in joinedCurves)
-                {
-                    if (joinedCurve.IsClosed) // Closed curves only make sense while completely above ground
-                        continue;
-
-                    var cutter = joinedCurve.Extend(CurveEnd.Both, 0.1, CurveExtensionStyle.Line);
-                    var extrusion = Surface.CreateExtrusion(cutter, Vector3d.ZAxis * 2);
-                    extrusion.Translate(Vector3d.ZAxis * -1);
-                    var topEdge = newTopography.DuplicateCurve();
-
-                    result = topEdge.Split(extrusion, 0.00001, 0.01);
-
-                    if (result.Length == 0)
-                        continue;
-
-                    //TODO which curve from result should be used?
-
-                    if (!Curve.DoDirectionsMatch(joinedCurve, result[0]))
-                        joinedCurve.Reverse();
-
-                    loft = Brep.CreateFromLoft(new Curve[] { result[0], joinedCurve }, Point3d.Unset, Point3d.Unset, LoftType.Normal, false);
-                    var mesh = Mesh.CreateFromBrep(loft[0], MeshingParameters.FastRenderMesh);
-                    meshesFill.Add(mesh[0]);
-                }
-            }
-
-            DA.SetDataList(2, meshesFill);
-            DA.SetDataList(3, new Polyline[] {bottom});
-            DA.SetDataList(4, points);
-
-            Rhino.RhinoApp.WriteLine("Total: " + sw.ElapsedMilliseconds + " ms");
+            Rhino.RhinoApp.WriteLine("Split: " + sw.ElapsedMilliseconds + " ms");
             sw.Stop();
 
+            if (!insidePolyline.IsClosed)
+                insidePolyline.Add(insidePolyline[0]);
+            var platform = Mesh.CreateFromClosedPolyline(insidePolyline);
+            platform.RebuildNormals();
 
-
+            DA.SetData(0, baseTerrain);
+            DA.SetDataList(1, meshesCut);
+            DA.SetDataList(2, meshesFill);
+            //DA.SetDataList(3, new Polyline[] { new Polyline(outline) });
+            //DA.SetDataList(4, insidePolyline);
+            //DA.SetDataList(5, bbb);
+            DA.SetData(6, platform);
 
         }
 
-        void BoundingBoxCallback(object sender, RTreeEventArgs e)
+        private Polyline CreateCutFillOutlinePoints(Polyline insidePolyline, List<List<Point3d>> cutInsidePoints, List<List<Point3d>> cutOutsidePoints, List<List<Point3d>> fillInsidePoints, List<List<Point3d>> fillOutsidePoints)
         {
-            boundingBoxSearchResults.Add(e.Id);
+            Polyline outline = new Polyline();
+            double slope;
+            double distance = 0;
+            double maxParameter = insidePolyline.ClosestParameter(insidePolyline[insidePolyline.Count - 1]);
+            int multiplier = 1; // TODO check direction
+
+            for (int i = 0; i < insidePolyline.Count; i++)
+            {
+                if (CheckIfFill(insidePolyline[i]))
+                {
+                    slope = -slopeFill;
+                    if (cutInsidePoints[cutInsidePoints.Count - 1].Count > 0)
+                    {
+                        cutInsidePoints.Add(new List<Point3d>());
+                        cutOutsidePoints.Add(new List<Point3d>());
+                    }
+                }
+                else
+                {
+                    slope = slopeCut;
+                    if (fillInsidePoints[fillInsidePoints.Count - 1].Count > 0)
+                    {
+                        fillInsidePoints.Add(new List<Point3d>());
+                        fillOutsidePoints.Add(new List<Point3d>());
+                    }
+                }
+
+                if (i > 0)
+                    distance += insidePolyline[i].DistanceTo(insidePolyline[i - 1]);
+                double t = maxParameter * distance / insidePolyline.Length;
+                Vector3d normal = Vector3d.CrossProduct(insidePolyline.TangentAt(t), Vector3d.ZAxis * multiplier);
+                normal.Unitize();
+                normal.Z = slope;
+
+                var ray = new Ray3d(insidePolyline[i], normal);
+                var meshRayIntersection = Rhino.Geometry.Intersect.Intersection.MeshRay(baseTerrain, ray);
+
+                if (meshRayIntersection < maxDistance)
+                {
+                    var point = ray.PointAt(meshRayIntersection);
+                    outline.Add(point);
+                    if (slope == -slopeFill)
+                    {
+                        fillInsidePoints[fillInsidePoints.Count - 1].Add(insidePolyline[i]);
+                        fillOutsidePoints[fillInsidePoints.Count - 1].Add(point);
+                    }
+                    else
+                    {
+                        cutInsidePoints[cutInsidePoints.Count - 1].Add(insidePolyline[i]);
+                        cutOutsidePoints[cutInsidePoints.Count - 1].Add(point);
+                    }
+                }
+                else
+                    outline.Add(insidePolyline[i]);
+            }
+
+            return outline;
+        }
+
+        private void FindRectanglesInsideMesh(Queue<Rectangle3d> rectangles, Mesh mesh, int maxIterations)
+        {
+            int iteration = 0;
+            while (rectangles.Count > 0)
+            {
+                iteration++;
+                var rect = rectangles.Dequeue();
+                Point3d[] rectangleCorners = new Point3d[4]
+                {
+                    rect.Corner(0),
+                    rect.Corner(1),
+                    rect.Corner(2),
+                    rect.Corner(3)
+                };
+                int containmentCount = CheckIfPointInsideMeshShadow(rectangleCorners, mesh);
+
+                if (containmentCount == 0)
+                    continue;
+                if (containmentCount == 4)
+                    _rectanglesFullyInside.Add(rect);
+                else if (iteration < maxIterations)
+                    PushRectanglesToQueue(SubdivideRectangle(rect), rectangles);
+                else
+                    _rectanglesOnEdge.Add(rect);
+            }
+        }
+
+        private void CheckFaceContainment(HashSet<int> faces, Mesh mesh)
+        {
+            foreach (var face in faces)
+            {
+                Point3d[] faceCorners = new Point3d[3] {
+                    (Point3d)baseTerrain.Vertices[baseTerrain.Faces[face].A],
+                    (Point3d)baseTerrain.Vertices[baseTerrain.Faces[face].B],
+                    (Point3d)baseTerrain.Vertices[baseTerrain.Faces[face].C]
+                };
+
+                int containmentCount = CheckIfPointInsideMeshShadow(faceCorners, mesh);
+                if (containmentCount > 0)
+                    _facesToDelete.Add(face);
+            }
+        }
+
+        private int CheckIfPointInsideMeshShadow(Point3d[] corners, Mesh mesh)
+        {
+            int counter = 0;
+            foreach (var corner in corners)
+            {
+                bool contained;
+                if (!_vertices.TryGetValue(corner, out contained))
+                {
+                    if (!corner.IsValid)
+                        continue;
+                    var pt = new Point3d(corner.X, corner.Y, -100000); // Make sure point is below the terrain
+                    var ray = new Ray3d(pt, Vector3d.ZAxis);
+                    var meshRayIntersection = Rhino.Geometry.Intersect.Intersection.MeshRay(mesh, ray);
+                    contained = meshRayIntersection == double.NegativeInfinity ? false : true;
+                    _vertices.Add(corner, contained);
+                }
+                if (contained)
+                    counter++;
+            }
+            return counter;
+        }
+
+        private BoundingBox ScaleBoundingBox(Rectangle3d rectangle)
+        {
+            var bbox = rectangle.BoundingBox;
+            bbox.Min = new Point3d(bbox.Min.X, bbox.Min.Y, -1000000);
+            bbox.Max = new Point3d(bbox.Max.X, bbox.Max.Y, 1000000);
+            return bbox;
+        }
+
+        private void PushRectanglesToQueue(Rectangle3d[] arryOfRectangles, Queue<Rectangle3d> queue)
+        {
+            foreach (var rect in arryOfRectangles)
+            {
+                var newRectangles = SubdivideRectangle(rect);
+                foreach (var newRectangle in newRectangles)
+                    queue.Enqueue(newRectangle);
+            }
+        }
+
+        private Rectangle3d[] SubdivideRectangle(Rectangle3d rectangle)
+        {
+            var halfWidth = rectangle.Width / 2;
+            var halfHeight = rectangle.Height / 2;
+            var corner0 = rectangle.Corner(0);
+            var corner1 = rectangle.Corner(0) + Vector3d.XAxis * halfWidth;
+            var corner2 = rectangle.Corner(0) + Vector3d.YAxis * halfHeight;
+            var corner3 = corner2 + Vector3d.XAxis * halfWidth;
+
+            var result = new Rectangle3d[4];
+            result[0] = new Rectangle3d(new Plane(corner0, Vector3d.ZAxis), halfWidth, halfHeight);
+            result[1] = new Rectangle3d(new Plane(corner1, Vector3d.ZAxis), halfWidth, halfHeight);
+            result[2] = new Rectangle3d(new Plane(corner2, Vector3d.ZAxis), halfWidth, halfHeight);
+            result[3] = new Rectangle3d(new Plane(corner3, Vector3d.ZAxis), halfWidth, halfHeight);
+
+            return result;
+        }
+
+        private void CreateMeshes(List<Mesh> resultingMeshes, List<List<Point3d>> inside, List<List<Point3d>> outside, bool close)
+        {
+            for (int i = 0; i < inside.Count; i++)
+            {
+                Mesh fillMeshSection = new Mesh();
+
+                fillMeshSection.Vertices.AddVertices(inside[i]);
+                fillMeshSection.Vertices.AddVertices(outside[i]);
+
+                int index = inside[i].Count;
+                for (int j = 0; j < index; j++)
+                {
+                    fillMeshSection.Faces.AddFace(j, j + index + 1, j + index);
+                    fillMeshSection.Faces.AddFace(j + 1, j + index + 1, j);
+                }
+                if (close)
+                {
+                    fillMeshSection.Faces.AddFace(index - 1, index, index + outside[i].Count - 1);
+                    fillMeshSection.Faces.AddFace(0, index, index - 1);
+                }
+
+                fillMeshSection.RebuildNormals();
+                resultingMeshes.Add(fillMeshSection);
+            }
+        }
+
+        private void MergeFirstAndLast(List<List<Point3d>> inside, List<List<Point3d>> outside, out bool close)
+        {
+            close = false;
+            if (inside.Count > 1 && inside[inside.Count - 1].Count > 0)
+            {
+                if (inside[0][0].DistanceTo(inside[inside.Count - 1][inside[inside.Count - 1].Count - 1]) < 0.5)
+                {
+                    inside[inside.Count - 1].AddRange(inside[0]);
+                    inside.RemoveAt(0);
+                    outside[outside.Count - 1].AddRange(outside[0]);
+                    outside.RemoveAt(0);
+                }
+            }
+            else if (inside[0].Count > 0 && inside[0][0].DistanceTo(inside[0][inside[0].Count - 1]) < 0.5)
+                close = true;
+
+        }
+        private bool CheckIfFill(Point3d point)
+        {
+            var ray = new Ray3d(point, -Vector3d.ZAxis);
+            var meshRayIntersection = Rhino.Geometry.Intersect.Intersection.MeshRay(baseTerrain, ray);
+            return meshRayIntersection == double.NegativeInfinity ? false : true;
+        }
+        void FindFacesToDelete(object sender, RTreeEventArgs e)
+        {
+            _facesToDelete.Add(e.Id);
+        }
+
+        void FindFacesOnEdge(object sender, RTreeEventArgs e)
+        {
+            _facesOnEdge.Add(e.Id);
         }
 
         protected override System.Drawing.Bitmap Icon
