@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
@@ -41,6 +44,7 @@ namespace terrainOptimizer
 
         HashSet<int> _facesToDelete;
         HashSet<int> _facesOnEdge;
+        HashSet<int> _finalFaces;
         List<Rectangle3d> _rectanglesFullyInside;
         List<Rectangle3d> _rectanglesOnEdge;
         Queue<Rectangle3d> _rectanglesToAnalyse;
@@ -86,56 +90,106 @@ namespace terrainOptimizer
             CreateMeshes(meshesCut, cutInsidePoints, cutOutsidePoints, close);
 
 
-            Rhino.RhinoApp.WriteLine("Cut & Fill mesh: " + sw.ElapsedMilliseconds + " ms");
-            sw.Restart();
+            //Rhino.RhinoApp.WriteLine("Cut & Fill mesh: " + sw.ElapsedMilliseconds + " ms");
+            //sw.Restart();
 
-            var box = outline.BoundingBox;
+            //var box = outline.BoundingBox;
 
             if (tree == null)
                 tree = RTree.CreateMeshFaceTree(baseTerrain);
 
-            _rectanglesFullyInside = new List<Rectangle3d>();
-            _rectanglesOnEdge = new List<Rectangle3d>();
-            _rectanglesToAnalyse = new Queue<Rectangle3d>();
+            //_rectanglesFullyInside = new List<Rectangle3d>();
+            //_rectanglesOnEdge = new List<Rectangle3d>();
+            //_rectanglesToAnalyse = new Queue<Rectangle3d>();
             _vertices = new Dictionary<Point3d, bool>();
             
-            var rectangle = new Rectangle3d(Plane.WorldXY, box.Corner(true, true, true), box.Corner(false, false, true));
-            var initial = SubdivideRectangle(rectangle);
+            //var rectangle = new Rectangle3d(Plane.WorldXY, box.Corner(true, true, true), box.Corner(false, false, true));
+            //var initial = SubdivideRectangle(rectangle);
 
-            PushRectanglesToQueue(initial, _rectanglesToAnalyse);
-            int maxIterations = 20;
+            //PushRectanglesToQueue(initial, _rectanglesToAnalyse);
+            //int maxIterations = 20;
+
+            //var test = new Polyline();
+            //for (int i = 0; i < outline.Count; i++)
+            //{
+            //    var t = outline.ClosestParameter(outline[i]);
+            //    Vector3d normal = Vector3d.CrossProduct(insidePolyline.TangentAt(t), -Vector3d.ZAxis);
+            //    normal.Unitize();
+            //    test.Add(outline[i] );
+            //}
+
             var outlineMesh = Mesh.CreateFromClosedPolyline(outline);
 
-            FindRectanglesInsideMesh(_rectanglesToAnalyse, outlineMesh, maxIterations);
+            //FindRectanglesInsideMesh(_rectanglesToAnalyse, outlineMesh, maxIterations);
 
             _facesToDelete = new HashSet<int>();
-            foreach (var re in _rectanglesFullyInside)
-                tree.Search(ScaleBoundingBox(re), FindFacesToDelete);
+            //foreach (var re in _rectanglesFullyInside)
+            //    tree.Search(ScaleBoundingBox(re), FindFacesToDelete);
 
             _facesOnEdge = new HashSet<int>();
-            foreach (var re in _rectanglesOnEdge)
-                tree.Search(ScaleBoundingBox(re), FindFacesOnEdge);
+            tree.Search(ScaleBoundingBox(outline.BoundingBox), FindFacesOnEdge);
+            //foreach (var re in _rectanglesOnEdge)
+            //    tree.Search(ScaleBoundingBox(re), FindFacesOnEdge);
 
-            CheckFaceContainment(_facesOnEdge, outlineMesh);
+            _finalFaces = new HashSet<int>();
+            var planar = new Polyline();
+            foreach (var pt in outline)
+                planar.Add(new Point3d(pt.X, pt.Y, 0));
+
+            CheckFaceContainment(_facesOnEdge, outlineMesh, planar.ToPolylineCurve());
+
+            var m = new Mesh();
+            m.CopyFrom(baseTerrain);
+            m.Faces.Clear();
+            List<MeshFace> faces = new List<MeshFace>();
+            foreach (var face in _finalFaces)
+                faces.Add(baseTerrain.Faces[face]);
+
+            m.Faces.AddFaces(faces);
+            m.Compact();
 
             baseTerrain.Faces.ExtractFaces(_facesToDelete);
 
-            Rhino.RhinoApp.WriteLine("Split: " + sw.ElapsedMilliseconds + " ms");
-            sw.Stop();
+            //Rhino.RhinoApp.WriteLine("Split: " + sw.ElapsedMilliseconds + " ms");
+            //sw.Restart();
 
             if (!insidePolyline.IsClosed)
                 insidePolyline.Add(insidePolyline[0]);
             var platform = Mesh.CreateFromClosedPolyline(insidePolyline);
             platform.RebuildNormals();
 
+
+            var nakedEdges = m.GetNakedEdges();
+            if (nakedEdges != null)
+            {
+                var patchMesh = CreateMeshWithHoles(new Polyline[] { nakedEdges[0], outline });
+                baseTerrain.Append(patchMesh);
+            }
+
+            //baseTerrain.Weld(Math.PI);
+            Rhino.RhinoApp.WriteLine("Total: " + sw.ElapsedMilliseconds + " ms");
+            sw.Stop();
+
+
             DA.SetData(0, baseTerrain);
             DA.SetDataList(1, meshesCut);
             DA.SetDataList(2, meshesFill);
-            //DA.SetDataList(3, new Polyline[] { new Polyline(outline) });
-            //DA.SetDataList(4, insidePolyline);
+            DA.SetDataList(3, new Polyline[] { outline });
+            //DA.SetDataList(4, new Point3d[] {l.From, l.To});
             //DA.SetDataList(5, bbb);
             DA.SetData(6, platform);
 
+        }
+
+        private int GetNakedEdgeId(int[] faceIds)
+        {
+            foreach (var faceId in faceIds)
+                foreach (var edge in baseTerrain.TopologyEdges.GetEdgesForFace(faceId))
+                    Rhino.RhinoApp.WriteLine("");
+            // if (baseTerrain.TopologyEdges.GetConnectedFaces(edge).Length == 1)
+
+
+            return -1;
         }
 
         private Polyline CreateCutFillOutlinePoints(Polyline insidePolyline, List<List<Point3d>> cutInsidePoints, List<List<Point3d>> cutOutsidePoints, List<List<Point3d>> fillInsidePoints, List<List<Point3d>> fillOutsidePoints)
@@ -151,8 +205,14 @@ namespace terrainOptimizer
                 if (CheckIfFill(insidePolyline[i]))
                 {
                     slope = -slopeFill;
-                    if (cutInsidePoints[cutInsidePoints.Count - 1].Count > 0)
+                    int lastItem = cutInsidePoints.Count - 1;
+                    if (cutInsidePoints[lastItem].Count > 0)
                     {
+                        var midPoint = insidePolyline[i - 1] + (insidePolyline[i] - insidePolyline[i - 1]) / 2;
+                        cutInsidePoints[lastItem].Add(midPoint);
+                        fillInsidePoints[fillInsidePoints.Count - 1].Add(midPoint);
+                        outline.Add(midPoint);
+
                         cutInsidePoints.Add(new List<Point3d>());
                         cutOutsidePoints.Add(new List<Point3d>());
                     }
@@ -160,8 +220,14 @@ namespace terrainOptimizer
                 else
                 {
                     slope = slopeCut;
-                    if (fillInsidePoints[fillInsidePoints.Count - 1].Count > 0)
+                    int lastItem = fillInsidePoints.Count - 1;
+                    if (fillInsidePoints[lastItem].Count > 0)
                     {
+                        var midPoint = insidePolyline[i - 1] + (insidePolyline[i] - insidePolyline[i - 1]) / 2;
+                        fillInsidePoints[lastItem].Add(midPoint);
+                        cutInsidePoints[cutInsidePoints.Count - 1].Add(midPoint);
+                        outline.Add(midPoint);
+
                         fillInsidePoints.Add(new List<Point3d>());
                         fillOutsidePoints.Add(new List<Point3d>());
                     }
@@ -169,6 +235,7 @@ namespace terrainOptimizer
 
                 if (i > 0)
                     distance += insidePolyline[i].DistanceTo(insidePolyline[i - 1]);
+                
                 double t = maxParameter * distance / insidePolyline.Length;
                 Vector3d normal = Vector3d.CrossProduct(insidePolyline.TangentAt(t), Vector3d.ZAxis * multiplier);
                 normal.Unitize();
@@ -226,7 +293,7 @@ namespace terrainOptimizer
             }
         }
 
-        private void CheckFaceContainment(HashSet<int> faces, Mesh mesh)
+        private void CheckFaceContainment(HashSet<int> faces, Mesh mesh, PolylineCurve outline)
         {
             foreach (var face in faces)
             {
@@ -238,13 +305,40 @@ namespace terrainOptimizer
 
                 int containmentCount = CheckIfPointInsideMeshShadow(faceCorners, mesh);
                 if (containmentCount > 0)
+                {
                     _facesToDelete.Add(face);
+                    _finalFaces.Add(face);
+                    continue;
+                }
+                else
+                {
+                    Line[] edges = new Line[3]
+                    {
+                    new Line(faceCorners[0].X, faceCorners[0].Y, 0, faceCorners[1].X, faceCorners[1].Y, 0),
+                    new Line(faceCorners[1].X, faceCorners[1].Y, 0, faceCorners[2].X, faceCorners[2].Y, 0),
+                    new Line(faceCorners[2].X, faceCorners[2].Y, 0, faceCorners[0].X, faceCorners[0].Y, 0),
+                    };
+
+                    foreach (var edge in edges)
+                    {
+                        var intersection = Rhino.Geometry.Intersect.Intersection.CurveCurve(outline, edge.ToNurbsCurve(), 0.001, 0.001);
+                        if (intersection != null && intersection.Count > 0)
+                        {
+                            _facesToDelete.Add(face);
+                            _finalFaces.Add(face);
+                            break;
+                        }
+                    }
+                }
             }
         }
 
         private int CheckIfPointInsideMeshShadow(Point3d[] corners, Mesh mesh)
         {
             int counter = 0;
+            if (mesh == null)
+                return counter;
+
             foreach (var corner in corners)
             {
                 bool contained;
@@ -259,9 +353,19 @@ namespace terrainOptimizer
                     _vertices.Add(corner, contained);
                 }
                 if (contained)
+                {
                     counter++;
+                    return counter;
+                }
             }
             return counter;
+        }
+
+        private BoundingBox ScaleBoundingBox(BoundingBox bbox)
+        {
+            bbox.Min = new Point3d(bbox.Min.X, bbox.Min.Y, -1000000);
+            bbox.Max = new Point3d(bbox.Max.X, bbox.Max.Y, 1000000);
+            return bbox;
         }
 
         private BoundingBox ScaleBoundingBox(Rectangle3d rectangle)
@@ -304,25 +408,40 @@ namespace terrainOptimizer
         {
             for (int i = 0; i < inside.Count; i++)
             {
-                Mesh fillMeshSection = new Mesh();
+                if (inside[i].Count == 0)
+                    continue;
 
-                fillMeshSection.Vertices.AddVertices(inside[i]);
-                fillMeshSection.Vertices.AddVertices(outside[i]);
+                Mesh meshSection = new Mesh();
+
+                meshSection.Vertices.AddVertices(inside[i]);
+                meshSection.Vertices.AddVertices(outside[i]);
 
                 int index = inside[i].Count;
-                for (int j = 0; j < index; j++)
-                {
-                    fillMeshSection.Faces.AddFace(j, j + index + 1, j + index);
-                    fillMeshSection.Faces.AddFace(j + 1, j + index + 1, j);
-                }
                 if (close)
                 {
-                    fillMeshSection.Faces.AddFace(index - 1, index, index + outside[i].Count - 1);
-                    fillMeshSection.Faces.AddFace(0, index, index - 1);
-                }
+                    for (int j = 0; j < index - 1; j++)
+                    {
+                        meshSection.Faces.AddFace(j, j + index + 1, j + index);
+                        meshSection.Faces.AddFace(j + 1, j + index + 1, j);
+                    }
 
-                fillMeshSection.RebuildNormals();
-                resultingMeshes.Add(fillMeshSection);
+                    meshSection.Faces.AddFace(index - 1, index, index + outside[i].Count - 1);
+                    meshSection.Faces.AddFace(0, index, index - 1);
+                }
+                else
+                {
+                    meshSection.Faces.AddFace(0, 1, index); // Starting triangle
+                    for (int j = 1; j < index - 1; j++)
+                    {
+                        meshSection.Faces.AddFace(j, j + index, j + index - 1);
+                        meshSection.Faces.AddFace(j + 1, j + index, j);
+                    }
+                    meshSection.Faces.AddFace(index - 1, index + index - 3, index - 2); // Ending triangle
+                }
+                    
+
+                meshSection.RebuildNormals();
+                resultingMeshes.Add(meshSection);
             }
         }
 
@@ -339,7 +458,7 @@ namespace terrainOptimizer
                     outside.RemoveAt(0);
                 }
             }
-            else if (inside[0].Count > 0 && inside[0][0].DistanceTo(inside[0][inside[0].Count - 1]) < 0.5)
+            else if (inside.Count == 1 && inside[0].Count > 0 && inside[0][0].DistanceTo(inside[0][inside[0].Count - 1]) < 0.5)
                 close = true;
 
         }
@@ -358,6 +477,177 @@ namespace terrainOptimizer
         {
             _facesOnEdge.Add(e.Id);
         }
+        public static Mesh CreateMeshWithHoles(Polyline[] polylines)
+        {
+
+            int curvesCount = polylines.Length;
+            int[] pointsRanges = new int[curvesCount];
+            Point3d[][] pts = new Point3d[curvesCount][];
+
+            Parallel.For(0, curvesCount, (i) =>
+            {
+                pts[i] = polylines[i].ToArray();
+                pointsRanges[i] = pts[i].Length;
+            });
+
+            Point3d[] points = pts.SelectMany(x => x).ToArray();
+            int total = points.Length; // Total amount of points
+
+            int[] cis = new int[total];
+            int[] AA = new int[total];
+            int[] BB = new int[total];
+            int[] CC = new int[total];
+            int[] DD = new int[total];
+
+            int start = 0;
+            for (int k = 0; k < curvesCount; k++)
+            {
+                Parallel.For(0, pointsRanges[k], (i) =>
+                {
+                    int w = start + i;
+                    cis[w] = k;
+                    if (pointsRanges[k] < 4)
+                    { // New case for triangular holes
+                        AA[w] = start - 1;
+                        BB[w] = w;
+                        CC[w] = w;
+                        DD[w] = start + pointsRanges[k];
+                    }
+                    else if (i == 0)
+                    {
+                        AA[w] = w;
+                        BB[w] = w;
+                        CC[w] = w + 1;
+                        DD[w] = start + pointsRanges[k] - 1;
+                    }
+                    else if (i == 1)
+                    {
+                        AA[w] = w;
+                        BB[w] = w;
+                        CC[w] = w + 1;
+                        DD[w] = start + pointsRanges[k];
+                    }
+                    else if (i == pointsRanges[k] - 2)
+                    {
+                        AA[w] = start - 1;
+                        BB[w] = w - 1;
+                        CC[w] = w;
+                        DD[w] = w;
+                    }
+                    else if (i == pointsRanges[k] - 1)
+                    {
+                        AA[w] = start;
+                        BB[w] = w - 1;
+                        CC[w] = w;
+                        DD[w] = w;
+                    }
+                    else
+                    {
+                        AA[w] = start - 1;
+                        BB[w] = w - 1;
+                        CC[w] = w + 1;
+                        DD[w] = start + pointsRanges[k];
+                    }
+                });
+                start += pointsRanges[k];
+            }
+
+            Mesh mesh = Mesh.CreateFromTessellation(points, polylines, Plane.WorldXY, false);
+
+            ConcurrentBag<int> deadIndices = new ConcurrentBag<int>();
+            ConcurrentBag<MeshFace> collidingFaces = new ConcurrentBag<MeshFace>();
+            Parallel.For(0, mesh.Faces.Count, (i) =>
+            {
+                int a = mesh.Faces[i].A;
+                int b = mesh.Faces[i].B;
+                int c = mesh.Faces[i].C;
+
+                if (a >= AA.Length || a >= BB.Length || a >= CC.Length || a >= DD.Length
+                || b >= AA.Length || b >= BB.Length || b >= CC.Length || b >= DD.Length)
+                {
+                    collidingFaces.Add(mesh.Faces[i]);
+                    return; // Skip if curves overlap
+                }
+
+                if (
+                  ((b > AA[a] && b < BB[a]) || (b > CC[a] && b < DD[a])) ||
+                  ((c > AA[a] && c < BB[a]) || (c > CC[a] && c < DD[a])) ||
+                  ((c > AA[b] && c < BB[b]) || (c > CC[b] && c < DD[b]))
+                )
+                {
+                    if (
+                    cis[a] > 0 &&
+                    points.Length > c && //Safety check to prevent component from crashing
+                    PointInPolygon((points[a] + points[b] + points[c]) / 3, polylines[cis[a]].ToArray())
+                    )
+                        deadIndices.Add(i);
+                }
+            });
+
+            if (collidingFaces.Count > 0) //Highlight overlapping faces
+            {
+                mesh.Faces.Clear();
+                mesh.Faces.AddFaces(collidingFaces);
+            }
+            else
+                mesh.Faces.DeleteFaces(deadIndices);
+
+            return mesh;
+        }
+
+        public static bool PointInPolygon(Point3d p, Point3d[] polylineArray)
+        {
+            //Check whether a point is inside a polyline using the winding number method
+            //http://geomalgorithms.com/a03-_inclusion.html
+
+            int n = polylineArray.Length - 1;
+            int windingNumber = 0;    // the winding number counter
+
+            // loop through all edges of the polygon
+            for (int i = 0; i < n; i++)
+            {
+                // edge from V[i] to V[i+1]
+                if (polylineArray[i].Y <= p.Y)
+                {         // start y <= P.y
+                    if (polylineArray[i + 1].Y >= p.Y)      // an upward crossing
+                    {
+                        int left = IsLeft(polylineArray[i], polylineArray[i + 1], p);
+                        if (left > 0)  // P left of edge
+                            ++windingNumber;            // have a valid up intersect
+                        else if (left == 0) // point on edge
+                            return true;
+                    }
+                }
+                else
+                {                       // start y > P.y (no test needed)
+                    if (polylineArray[i + 1].Y <= p.Y)     // a downward crossing
+                    {
+                        int left = IsLeft(polylineArray[i], polylineArray[i + 1], p);
+                        if (left < 0)  // P right of edge
+                            --windingNumber;            // have a valid down intersect
+                        else if (left == 0) // point on edge
+                            return true;
+                    }
+                }
+            }
+            if (windingNumber != 0)
+                return true;
+            else
+                return false;
+        }
+
+        private static int IsLeft(Point3d p0, Point3d p1, Point3d p2)
+        {
+            //Helper function for the PointInPolygon method
+            double calc = (p1.X - p0.X) * (p2.Y - p0.Y) - (p2.X - p0.X) * (p1.Y - p0.Y);
+            if (calc > 0.00001) //precision necessary to make sure that points laying on edge are included as well
+                return 1;
+            else if (calc < -0.00001)
+                return -1;
+            else
+                return 0;
+        }
+
 
         protected override System.Drawing.Bitmap Icon
         {
