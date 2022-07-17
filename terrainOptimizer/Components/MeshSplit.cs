@@ -24,11 +24,13 @@ namespace terrainOptimizer
             pManager.AddCurveParameter("proposed", "proposed", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("cut slope", "cut slope", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("fill slope", "fill slope", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("round corners", "round", "", GH_ParamAccess.item);
 
             pManager[0].Optional = true;
             pManager[1].Optional = true;
             pManager[2].Optional = true;
             pManager[3].Optional = true;
+            pManager[4].Optional = true;
 
         }
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
@@ -60,6 +62,7 @@ namespace terrainOptimizer
 
         double slopeCut;
         double slopeFill;
+        double roundCorners;
         double maxDistance = 100;
         double minDiagonalDepth = 100;
 
@@ -70,22 +73,26 @@ namespace terrainOptimizer
             DA.GetData(1, ref newTerrain);
             DA.GetData(2, ref slopeCut);
             DA.GetData(3, ref slopeFill);
+            DA.GetData(4, ref roundCorners);
             minDiagonalDepth = 100;
-
 
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
-
 
             List<List<Point3d>> fillInsidePoints = new List<List<Point3d>> { new List<Point3d>() };
             List<List<Point3d>> fillOutsidePoints = new List<List<Point3d>> { new List<Point3d>() };
             List<List<Point3d>> cutInsidePoints = new List<List<Point3d>> { new List<Point3d>() };
             List<List<Point3d>> cutOutsidePoints = new List<List<Point3d>> { new List<Point3d>() };
 
-            Polyline insidePolyline = newTerrain.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.005, 0.5, false).ToPolyline();
+            if (roundCorners > 0)
+                newTerrain = Curve.CreateFilletCornersCurve(newTerrain, roundCorners, 0.00001, 0.00001);
+
+            Polyline insidePolyline = newTerrain.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, false).ToPolyline();
             Polyline outline = CreateCutFillOutlinePoints(insidePolyline, cutInsidePoints, cutOutsidePoints, fillInsidePoints, fillOutsidePoints);
             if (!outline.IsClosed)
                 outline.Add(outline[0]);
+
+            
 
             List<Mesh> meshesFill = new List<Mesh>();
             MergeFirstAndLast(fillInsidePoints, fillOutsidePoints, out bool close);
@@ -122,19 +129,17 @@ namespace terrainOptimizer
             // Get only the ones we are interested in analysing further
             _facesInBoundingBox.ExceptWith(_facesFullyOutside);
 
-            // Add back faces lying directly on the outline which might have been removed in the previous step
-            List<BoundingBox> boxesOnOutline = new List<BoundingBox>();
+            // Add faces lying directly on the outline which might have been removed in the previous step
+            BoundingBox[] boxesOnOutline = new BoundingBox[outline.Count - 1];
             for (int i = 0; i < outline.Count - 1; i++)
-                boxesOnOutline.Add(new Polyline() { outline[i], outline[i + 1] }.BoundingBox);
+                boxesOnOutline[i] = (new Polyline() { outline[i], outline[i + 1] }.BoundingBox);
 
             foreach (var b in boxesOnOutline)
                 tree.Search(ScaleBoundingBox(b), FindFacesWithinBoundingBox);
 
 
             // Perform accurate collision test on the XY plane
-            var planar = new Polyline();
-            foreach (var pt in outline)
-                planar.Add(new Point3d(pt.X, pt.Y, 0));
+            var planar = FlattenPolyline(outline);
            
             _facesToDelete = new HashSet<int>();
             CheckFaceContainment(_facesInBoundingBox, outlineMesh, planar.ToPolylineCurve());
@@ -142,7 +147,7 @@ namespace terrainOptimizer
             var m = new Mesh();
             m.CopyFrom(baseTerrain);
             m.Faces.Clear();
-            List<MeshFace> faces = new List<MeshFace>();
+            List<MeshFace> faces = new List<MeshFace>(_facesToDelete.Count);
             foreach (var face in _facesToDelete)
                 faces.Add(baseTerrain.Faces[face]);
 
@@ -156,6 +161,8 @@ namespace terrainOptimizer
                 insidePolyline.Add(insidePolyline[0]);
             var platform = Mesh.CreateFromClosedPolyline(insidePolyline);
             platform.RebuildNormals();
+            if (platform.Normals[0].Z < 0)
+                platform.Flip(true, true, true);
 
 
             var nakedEdges = m.GetNakedEdges();
@@ -177,7 +184,7 @@ namespace terrainOptimizer
                 double depth = Math.Sin(Math.Atan(slopeCut)) * minDiagonalDepth;
                 double wedgeArea = Math.Sqrt(Math.Pow(minDiagonalDepth, 2) - Math.Pow(depth, 2)) * depth / 2;
                 double sweptVolume = wedgeArea * insidePolyline.Length;
-                double extrudedVolume = AreaMassProperties.Compute(newTerrain, 0.1).Area * depth;
+                double extrudedVolume = AreaMassProperties.Compute(FlattenPolyline(insidePolyline).ToPolylineCurve(), 0.1).Area * depth;
 
                 stats = $"Depth: {Math.Round(depth, 2)} m \nVolume: {Math.Round(sweptVolume + extrudedVolume, 2)} m3";
             }
@@ -187,7 +194,7 @@ namespace terrainOptimizer
             DA.SetData(0, baseTerrain);
             DA.SetDataList(1, meshesCut);
             DA.SetDataList(2, meshesFill);
-           // DA.SetDataList(3, nakedEdges);
+            //DA.SetDataList(3, nakedEdges);
             //DA.SetDataList(4, new Point3d[] {l.From, l.To});
            // DA.SetDataList(5, bbb);
             DA.SetData(6, platform);
@@ -195,13 +202,19 @@ namespace terrainOptimizer
 
         }
 
+        private Polyline FlattenPolyline(Polyline polyline)
+        {
+            Polyline planar = new Polyline();
+            foreach (var pt in polyline)
+                planar.Add(new Point3d(pt.X, pt.Y, 0));
+
+            return planar;
+        }
 
         private Polyline CreateCutFillOutlinePoints(Polyline insidePolyline, List<List<Point3d>> cutInsidePoints, List<List<Point3d>> cutOutsidePoints, List<List<Point3d>> fillInsidePoints, List<List<Point3d>> fillOutsidePoints)
         {
             Polyline outline = new Polyline();
             double slope;
-            double distance = 0;
-            double maxParameter = insidePolyline.ClosestParameter(insidePolyline[insidePolyline.Count - 1]);
             int multiplier = 1; // TODO check direction
 
             for (int i = 0; i < insidePolyline.Count; i++)
@@ -237,10 +250,7 @@ namespace terrainOptimizer
                     }
                 }
 
-                if (i > 0)
-                    distance += insidePolyline[i].DistanceTo(insidePolyline[i - 1]);
-
-                double t = maxParameter * distance / insidePolyline.Length;
+                double t = insidePolyline.ClosestParameter(insidePolyline[i]);
                 Vector3d normal = Vector3d.CrossProduct(insidePolyline.TangentAt(t), Vector3d.ZAxis * multiplier);
                 normal.Unitize();
                 normal.Z = slope;
