@@ -61,6 +61,7 @@
   <ItemGroup>
     <Compile Include="Components\GHC_MeshFlow.cs" />
     <Compile Include="Components\GHC_terrainOptimizer.cs" />
+    <Compile Include="Components\MeshBreakline.cs" />
     <Compile Include="Components\MeshSplit.cs" />
     <Compile Include="Helpers\Structs.cs" />
     <Compile Include="terrainOptimizerInfo.cs" />
