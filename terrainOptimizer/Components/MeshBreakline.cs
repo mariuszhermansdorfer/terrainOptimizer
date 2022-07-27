@@ -71,33 +71,20 @@ namespace terrainOptimizer
 
             for (int i = 0; i < breakline.Count - 1; i++)
             {
-                int crossedEdge = -1;
-                if (MeshTraversal.PointInMeshFace(ref baseTerrain, currentFace, breakline[i + 1]))
-                    continue;
-
+                int? crossedEdge = null;
                 var line = new Line(breakline[i], breakline[i + 1]);
-                int intersection = MeshTraversal.FindNextFace(ref baseTerrain, currentFace, null, line, out crossedEdge);
-                if (intersection == -1)
-                    continue;
-                else
+
+                while (true)
                 {
-                    bool endPointContained = false;
-                    while (!endPointContained)
+                    int intersection = MeshTraversal.FindNextFace(ref baseTerrain, currentFace, crossedEdge, line, out crossedEdge);
+                    if (intersection != -1)
                     {
-                        if (intersection != -1)
-                            currentFace = intersection;
-
+                        currentFace = intersection;
                         _facesToDelete.Add(currentFace);
-                        endPointContained = MeshTraversal.PointInMeshFace(ref baseTerrain, currentFace, breakline[i + 1]);
-                        if (endPointContained)
-                            continue;
-
-                        intersection = MeshTraversal.FindNextFace(ref baseTerrain, currentFace, crossedEdge, line, out crossedEdge);
-                        //endPointContained = true;
                     }
-
+                    if (MeshTraversal.PointInMeshFace(ref baseTerrain, currentFace, breakline[i + 1]))
+                        break;
                 }
-
             }
 
 

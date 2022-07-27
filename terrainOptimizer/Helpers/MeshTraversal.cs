@@ -9,7 +9,7 @@ namespace terrainOptimizer
 {
     public class MeshTraversal
     {
-        public static int FindNextFace(ref Mesh mesh, int currentIndex, int? visitedEdge, Line crossingLine, out int crossedEdge)
+        public static int FindNextFace(ref Mesh mesh, int currentIndex, int? visitedEdge, Line crossingLine, out int? crossedEdge)
         {
             crossedEdge = -1;
             var xform = Transform.PlanarProjection(Plane.WorldXY);
@@ -23,7 +23,7 @@ namespace terrainOptimizer
 
                 var edge = mesh.TopologyEdges.EdgeLine(edgesForCurrentFace[i]);
                 edge.Transform(xform);
-                var intersectionFound = Intersection.LineLine(edge, crossingLine, out double a, out _, 0.001, true);
+                var intersectionFound = Intersection.LineLine(edge, crossingLine, out double a, out _, 0.00001, true);
 
                 if (intersectionFound)
                 {
@@ -47,7 +47,14 @@ namespace terrainOptimizer
             var a = (Point3d)mesh.Vertices[mesh.Faces[faceIndex].A];
             var b = (Point3d)mesh.Vertices[mesh.Faces[faceIndex].B];
             var c = (Point3d)mesh.Vertices[mesh.Faces[faceIndex].C];
-            return PointInTriangle(a, b, c, point);
+
+            if (mesh.Faces[faceIndex].IsTriangle)
+                return PointInTriangle(a, b, c, point);
+
+            // Check for quad faces
+
+            var d = (Point3d)mesh.Vertices[mesh.Faces[faceIndex].D];
+            return (PointInTriangle(a, b, c, point) || PointInTriangle(c, d, a, point));
         }
 
         public static bool PointInTriangle(Point3d a, Point3d b, Point3d c, Point3d point)
