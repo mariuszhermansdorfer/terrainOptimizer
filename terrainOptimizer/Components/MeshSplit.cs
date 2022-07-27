@@ -84,7 +84,7 @@ namespace terrainOptimizer
             List<List<Point3d>> cutInsidePoints = new List<List<Point3d>> { new List<Point3d>() };
             List<List<Point3d>> cutOutsidePoints = new List<List<Point3d>> { new List<Point3d>() };
 
-            if (roundCorners > 0)
+            if (roundCorners > 0 && newTerrain.IsPolyline())
                 newTerrain = Curve.CreateFilletCornersCurve(newTerrain, roundCorners, 0.00001, 0.00001);
 
             Polyline insidePolyline = newTerrain.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, false).ToPolyline();
@@ -92,7 +92,9 @@ namespace terrainOptimizer
             if (!outline.IsClosed)
                 outline.Add(outline[0]);
 
-            
+            var outlineMesh = Mesh.CreateFromClosedPolyline(outline);
+            if (outlineMesh == null)
+                return;
 
             List<Mesh> meshesFill = new List<Mesh>();
             MergeFirstAndLast(fillInsidePoints, fillOutsidePoints, out bool close);
@@ -103,46 +105,18 @@ namespace terrainOptimizer
             CreateMeshes(meshesCut, cutInsidePoints, cutOutsidePoints, close);
 
 
-            if (tree == null)
-                tree = RTree.CreateMeshFaceTree(baseTerrain);
 
-            _rectanglesFullyOutside = new List<Rectangle3d>();
-            _rectanglesToAnalyse = new Queue<Rectangle3d>();
-            _vertices = new Dictionary<Point3d, bool>();
-            _edges = new Dictionary<Line, bool>();
+            Rhino.Geometry.Intersect.Intersection.MeshRay(baseTerrain, new Ray3d(new Point3d(outline[0].X, outline[0].Y, -999), Vector3d.ZAxis), out int[] intersectedFaces);
 
-             // Find faces within a larger bounding box
-            var outlineBoundingBox = outline.BoundingBox;
-            var outlineMesh = Mesh.CreateFromClosedPolyline(outline);
-            _facesInBoundingBox = new HashSet<int>();
-            tree.Search(ScaleBoundingBox(outlineBoundingBox), FindFacesWithinBoundingBox);
-
-            // Find faces outside of the outline mesh
-            var rectangle = new Rectangle3d(Plane.WorldXY, outlineBoundingBox.Corner(true, true, true), outlineBoundingBox.Corner(false, false, true));
-            PushRectanglesToQueue(SubdivideRectangle(rectangle), _rectanglesToAnalyse);
-            FindRectanglesOutsideMesh(_rectanglesToAnalyse, outlineMesh, 20);
-
-            _facesFullyOutside = new HashSet<int>();
-            foreach (var rect in _rectanglesFullyOutside)
-                tree.Search(ScaleBoundingBox(rect.BoundingBox), FindFacesOutside);
-
-            // Get only the ones we are interested in analysing further
-            _facesInBoundingBox.ExceptWith(_facesFullyOutside);
-
-            // Add faces lying directly on the outline which might have been removed in the previous step
-            BoundingBox[] boxesOnOutline = new BoundingBox[outline.Count - 1];
-            for (int i = 0; i < outline.Count - 1; i++)
-                boxesOnOutline[i] = (new Polyline() { outline[i], outline[i + 1] }.BoundingBox);
-
-            foreach (var b in boxesOnOutline)
-                tree.Search(ScaleBoundingBox(b), FindFacesWithinBoundingBox);
+            if (intersectedFaces.Length == 0)
+                return;
 
 
-            // Perform accurate collision test on the XY plane
-            var planar = FlattenPolyline(outline);
-           
-            _facesToDelete = new HashSet<int>();
-            CheckFaceContainment(_facesInBoundingBox, outlineMesh, planar.ToPolylineCurve());
+            _facesToDelete = MeshTraversal.FindFacesCrossedByPolyline(ref baseTerrain, outline, intersectedFaces[0]);
+            var insideFaces = MeshTraversal.FindFacesWithinBoundary(ref baseTerrain, ref outlineMesh, _facesToDelete);
+
+            _facesToDelete.UnionWith(insideFaces);
+
 
             var m = new Mesh();
             m.CopyFrom(baseTerrain);
@@ -194,7 +168,7 @@ namespace terrainOptimizer
             DA.SetData(0, baseTerrain);
             DA.SetDataList(1, meshesCut);
             DA.SetDataList(2, meshesFill);
-            //DA.SetDataList(3, nakedEdges);
+            DA.SetDataList(3, new Curve[] { outline.ToPolylineCurve() });
             //DA.SetDataList(4, new Point3d[] {l.From, l.To});
            // DA.SetDataList(5, bbb);
             DA.SetData(6, platform);

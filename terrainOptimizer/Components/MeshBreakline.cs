@@ -65,27 +65,8 @@ namespace terrainOptimizer
             if (intersectedFaces.Length == 0)
                 return;
 
-            int currentFace = intersectedFaces[0];
-            _facesToDelete = new HashSet<int>();
-            _facesToDelete.Add(currentFace);
+            _facesToDelete = MeshTraversal.FindFacesCrossedByPolyline(ref baseTerrain, breakline, intersectedFaces[0]);
 
-            for (int i = 0; i < breakline.Count - 1; i++)
-            {
-                int? crossedEdge = null;
-                var line = new Line(breakline[i], breakline[i + 1]);
-
-                while (true)
-                {
-                    int intersection = MeshTraversal.FindNextFace(ref baseTerrain, currentFace, crossedEdge, line, out crossedEdge);
-                    if (intersection != -1)
-                    {
-                        currentFace = intersection;
-                        _facesToDelete.Add(currentFace);
-                    }
-                    if (MeshTraversal.PointInMeshFace(ref baseTerrain, currentFace, breakline[i + 1]))
-                        break;
-                }
-            }
 
 
             var m = new Mesh();
