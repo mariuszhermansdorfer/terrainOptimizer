@@ -9,13 +9,21 @@ namespace terrainOptimizer
 {
     public class MeshTraversal
     {
-        public static int FindNextFace(ref Mesh mesh, int currentIndex, Line crossingLine)
+        public static int FindNextFace(ref Mesh mesh, int currentIndex, int? visitedEdge, Line crossingLine, out int crossedEdge)
         {
+            crossedEdge = -1;
+            var xform = Transform.PlanarProjection(Plane.WorldXY);
+            crossingLine.Transform(xform);
+
             var edgesForCurrentFace = mesh.TopologyEdges.GetEdgesForFace(currentIndex);
             for (int i = 0; i < edgesForCurrentFace.Length; i++)
             {
+                if (visitedEdge != null && edgesForCurrentFace[i] == visitedEdge)
+                    continue;
+
                 var edge = mesh.TopologyEdges.EdgeLine(edgesForCurrentFace[i]);
-                var intersectionFound = Intersection.LineLine(edge, crossingLine, out double a, out _);
+                edge.Transform(xform);
+                var intersectionFound = Intersection.LineLine(edge, crossingLine, out double a, out _, 0.001, true);
 
                 if (intersectionFound)
                 {
@@ -23,8 +31,12 @@ namespace terrainOptimizer
                     if (connectedFaces.Length == 1) // Naked edge
                         return -1;
 
-                    if (connectedFaces.Length == 2)
+                    if (connectedFaces.Length == 2) 
+                    {
+                        crossedEdge = edgesForCurrentFace[i];
                         return connectedFaces[0] != currentIndex ? connectedFaces[0] : connectedFaces[1];
+                    }
+                        
                 }
             }
             return -1;
