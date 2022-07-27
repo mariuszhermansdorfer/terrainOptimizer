@@ -69,8 +69,6 @@ namespace terrainOptimizer
             _edges = new Dictionary<Line, bool>();
 
 
-
-            // Add faces lying directly on the outline which might have been removed in the previous step
             BoundingBox[] boxesOnBreakline = new BoundingBox[breakline.Count - 1];
             for (int i = 0; i < breakline.Count - 1; i++)
                 boxesOnBreakline[i] = (new Polyline() { breakline[i], breakline[i + 1] }.BoundingBox);
@@ -95,18 +93,19 @@ namespace terrainOptimizer
 
 
             var nakedEdges = m.GetNakedEdges();
+            var patchMesh = new Mesh();
             if (nakedEdges != null)
             {
                 //var reorderedOutline = ReorderPolylinePoints(breakline, nakedEdges[0]);
                 //var patchMesh = CreateMeshFromBreakline(reorderedOutline, breakline);
                 
-                var subdivided = nakedEdges[0].ToNurbsCurve().ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
+                //var subdivided = nakedEdges[0].ToNurbsCurve().ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
 
-                List<Point3d> points = new List<Point3d>();
-                points.AddRange(subdivided);
-                points.AddRange(breakline);
+                //List<Point3d> points = new List<Point3d>();
+                //points.AddRange(subdivided);
+                //points.AddRange(breakline);
 
-                var patchMesh = Mesh.CreatePatch(nakedEdges[0], 0.1, null, null, new Curve[] { breakline.ToNurbsCurve() }, null, false, 100);
+                patchMesh = Mesh.CreatePatch(nakedEdges[0], 0.1, null, null, new Curve[] { proposedBreakline }, null, false, 100);
                 patchMesh.RebuildNormals();
 
                 //var patchMesh = Mesh.CreateFromTessellation(points, new Polyline[] { subdivided, breakline }, Plane.WorldXY, false);
@@ -115,7 +114,7 @@ namespace terrainOptimizer
             }
 
             
-            baseTerrain.Weld(Math.PI);
+            //baseTerrain.Weld(Math.PI);
 
             Rhino.RhinoApp.WriteLine("Total: " + sw.ElapsedMilliseconds + " ms");
             sw.Stop();
@@ -123,12 +122,14 @@ namespace terrainOptimizer
 
 
 
-            DA.SetData(0, baseTerrain);
+            DA.SetData(0, patchMesh);
             DA.SetData(1, nakedEdges[0]);
             //DA.SetData(1, platform);
 
 
         }
+
+
 
         private Point3d[] ReorderPolylinePoints(Polyline breakline, Polyline nakedClosedEdge)
         {
