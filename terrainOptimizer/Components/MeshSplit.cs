@@ -45,18 +45,9 @@ namespace terrainOptimizer
             pManager.AddTextParameter("stats", "", "", GH_ParamAccess.item);
         }
 
-        List<Rectangle3d> _rectanglesFullyOutside;
-        Queue<Rectangle3d> _rectanglesToAnalyse;
-        HashSet<int> _facesInBoundingBox;
-        HashSet<int> _facesFullyOutside;
+
         HashSet<int> _facesToDelete;
 
-
-        // Used to store intersection results
-        Dictionary<Point3d, bool> _vertices;
-        Dictionary<Line, bool> _edges;
-
-        RTree tree;
         Mesh baseTerrain;
         Curve newTerrain;
 
@@ -117,29 +108,19 @@ namespace terrainOptimizer
 
             _facesToDelete.UnionWith(insideFaces);
 
-
-            var m = new Mesh();
-            m.CopyFrom(baseTerrain);
-            m.Faces.Clear();
-            List<MeshFace> faces = new List<MeshFace>(_facesToDelete.Count);
-            foreach (var face in _facesToDelete)
-                faces.Add(baseTerrain.Faces[face]);
-
-            m.Faces.AddFaces(faces);
-            m.Compact();
-
-            baseTerrain.Faces.ExtractFaces(_facesToDelete);
+            var hole = baseTerrain.Faces.ExtractFaces(_facesToDelete);
 
 
             if (!insidePolyline.IsClosed)
                 insidePolyline.Add(insidePolyline[0]);
-            var platform = Mesh.CreateFromClosedPolyline(insidePolyline);
-            platform.RebuildNormals();
-            if (platform.Normals[0].Z < 0)
-                platform.Flip(true, true, true);
+
+            var insideMesh = Mesh.CreateFromClosedPolyline(insidePolyline);
+            insideMesh.RebuildNormals();
+            if (insideMesh.Normals[0].Z < 0)
+                insideMesh.Flip(true, true, true);
 
 
-            var nakedEdges = m.GetNakedEdges();
+            var nakedEdges = hole.GetNakedEdges();
             if (nakedEdges != null)
             {
                 var patchMesh = CreateMeshWithHoles(new Polyline[] { nakedEdges[0], outline });
@@ -171,7 +152,7 @@ namespace terrainOptimizer
             DA.SetDataList(3, new Curve[] { outline.ToPolylineCurve() });
             //DA.SetDataList(4, new Point3d[] {l.From, l.To});
            // DA.SetDataList(5, bbb);
-            DA.SetData(6, platform);
+            DA.SetData(6, insideMesh);
             DA.SetData(7, stats);
 
         }
@@ -243,6 +224,7 @@ namespace terrainOptimizer
                     }
                     else
                     {
+                        // Used to calculate volumes
                         // TODO assign this parameter per each object
                         var slopeDistance = point.DistanceTo(insidePolyline[i]);
                         minDiagonalDepth = slopeDistance < minDiagonalDepth ? slopeDistance : minDiagonalDepth;
@@ -259,151 +241,7 @@ namespace terrainOptimizer
             return outline;
         }
 
-        private void FindRectanglesOutsideMesh(Queue<Rectangle3d> rectangles, Mesh mesh, int maxIterations)
-        {
-            int iteration = 0;
-            while (rectangles.Count > 0)
-            {
-                iteration++;
-                var rect = rectangles.Dequeue();
-                if (iteration < 16)
-                {
-                    PushRectanglesToQueue(SubdivideRectangle(rect), rectangles);
-                    continue;
-                }
 
-                Point3d[] rectangleCorners = new Point3d[4]
-                {
-                    rect.Corner(0),
-                    rect.Corner(1),
-                    rect.Corner(2),
-                    rect.Corner(3)
-                };
-                int containmentCount = CheckIfPointInsideMeshShadow(rectangleCorners, mesh, true);
-
-                if (containmentCount == 0)
-                    _rectanglesFullyOutside.Add(rect);
-                else if (containmentCount != 4 && iteration < maxIterations)
-                    PushRectanglesToQueue(SubdivideRectangle(rect), rectangles);
-            }
-        }
-
-        private void CheckFaceContainment(HashSet<int> faces, Mesh mesh, PolylineCurve outline)
-        {
-            foreach (var face in faces)
-            {
-                Point3d[] faceCorners = new Point3d[3] {
-                    (Point3d)baseTerrain.Vertices[baseTerrain.Faces[face].A],
-                    (Point3d)baseTerrain.Vertices[baseTerrain.Faces[face].B],
-                    (Point3d)baseTerrain.Vertices[baseTerrain.Faces[face].C]
-                };
-
-                int containmentCount = CheckIfPointInsideMeshShadow(faceCorners, mesh, false);
-                if (containmentCount > 0)
-                {
-                    _facesToDelete.Add(face);
-                }
-                else
-                {
-                    Line[] edges = new Line[3]
-                    {
-                    new Line(faceCorners[0].X, faceCorners[0].Y, 0, faceCorners[1].X, faceCorners[1].Y, 0),
-                    new Line(faceCorners[1].X, faceCorners[1].Y, 0, faceCorners[2].X, faceCorners[2].Y, 0),
-                    new Line(faceCorners[2].X, faceCorners[2].Y, 0, faceCorners[0].X, faceCorners[0].Y, 0),
-                    };
-
-                    foreach (var edge in edges)
-                    {
-                        if (_edges.TryGetValue(edge, out bool crossing))
-                        {
-                            if (crossing)
-                            {
-                                _facesToDelete.Add(face);
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            var intersection = Rhino.Geometry.Intersect.Intersection.CurveCurve(outline, edge.ToNurbsCurve(), 0.001, 0.001);
-                            if (intersection == null || intersection.Count == 0)
-                            {
-                                _edges.Add(new Line(edge.To, edge.From), false);
-                            }
-                            else
-                            {
-                                _edges.Add(new Line(edge.To, edge.From), true);
-                                _facesToDelete.Add(face);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private int CheckIfPointInsideMeshShadow(Point3d[] corners, Mesh mesh, bool accurate)
-        {
-            int counter = 0;
-            if (mesh == null)
-                return counter;
-
-            foreach (var corner in corners)
-            {
-                bool contained;
-                if (!_vertices.TryGetValue(corner, out contained))
-                {
-                    if (!corner.IsValid)
-                        continue;
-                    var pt = new Point3d(corner.X, corner.Y, -100000); // Make sure point is below the terrain
-                    var ray = new Ray3d(pt, Vector3d.ZAxis);
-                    var meshRayIntersection = Rhino.Geometry.Intersect.Intersection.MeshRay(mesh, ray);
-                    contained = meshRayIntersection == double.NegativeInfinity ? false : true;
-                    _vertices.Add(corner, contained);
-                }
-                if (contained)
-                {
-                    counter++;
-                    if (!accurate)
-                        return counter;
-                }
-            }
-            return counter;
-        }
-
-        private BoundingBox ScaleBoundingBox(BoundingBox bbox)
-        {
-            bbox.Min = new Point3d(bbox.Min.X, bbox.Min.Y, -1000000);
-            bbox.Max = new Point3d(bbox.Max.X, bbox.Max.Y, 1000000);
-            return bbox;
-        }
-
-        private void PushRectanglesToQueue(Rectangle3d[] arryOfRectangles, Queue<Rectangle3d> queue)
-        {
-            foreach (var rect in arryOfRectangles)
-            {
-                var newRectangles = SubdivideRectangle(rect);
-                foreach (var newRectangle in newRectangles)
-                    queue.Enqueue(newRectangle);
-            }
-        }
-
-        private Rectangle3d[] SubdivideRectangle(Rectangle3d rectangle)
-        {
-            var halfWidth = rectangle.Width / 2;
-            var halfHeight = rectangle.Height / 2;
-            var corner0 = rectangle.Corner(0);
-            var corner1 = rectangle.Corner(0) + Vector3d.XAxis * halfWidth;
-            var corner2 = rectangle.Corner(0) + Vector3d.YAxis * halfHeight;
-            var corner3 = corner2 + Vector3d.XAxis * halfWidth;
-
-            var result = new Rectangle3d[4];
-            result[0] = new Rectangle3d(new Plane(corner0, Vector3d.ZAxis), halfWidth, halfHeight);
-            result[1] = new Rectangle3d(new Plane(corner1, Vector3d.ZAxis), halfWidth, halfHeight);
-            result[2] = new Rectangle3d(new Plane(corner2, Vector3d.ZAxis), halfWidth, halfHeight);
-            result[3] = new Rectangle3d(new Plane(corner3, Vector3d.ZAxis), halfWidth, halfHeight);
-
-            return result;
-        }
         private void CreateMeshes(List<Mesh> resultingMeshes, List<List<Point3d>> inside, List<List<Point3d>> outside, bool close)
         {
             for (int i = 0; i < inside.Count; i++)
@@ -469,20 +307,6 @@ namespace terrainOptimizer
             return meshRayIntersection == double.NegativeInfinity ? false : true;
         }
 
-        void FindFacesToDelete(object sender, RTreeEventArgs e)
-        {
-            _facesToDelete.Add(e.Id);
-        }
-
-        void FindFacesOutside(object sender, RTreeEventArgs e)
-        {
-            _facesFullyOutside.Add(e.Id);
-        }
-
-        void FindFacesWithinBoundingBox(object sender, RTreeEventArgs e)
-        {
-            _facesInBoundingBox.Add(e.Id);
-        }
         public static Mesh CreateMeshWithHoles(Polyline[] polylines)
         {
 
