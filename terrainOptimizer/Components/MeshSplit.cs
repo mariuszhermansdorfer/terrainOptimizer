@@ -249,7 +249,6 @@ namespace terrainOptimizer
 
                 if (intersection.distance < maxDistance)
                 {
-                    //var point = ray.PointAt(meshRayIntersection);
                     var point = ray.PointAt(intersection.distance);
                     outline.Add(point);
                     if (slope == -slopeFill)
