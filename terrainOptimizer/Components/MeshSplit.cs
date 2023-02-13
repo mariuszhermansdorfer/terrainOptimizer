@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using DHARTAPI.RayTracing;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
@@ -48,8 +50,8 @@ namespace terrainOptimizer
 
         HashSet<int> _facesToDelete;
 
-        Mesh baseTerrain;
-        Curve newTerrain;
+        Mesh _baseTerrain;
+        Curve _newTerrain;
 
         double slopeCut;
         double slopeFill;
@@ -60,8 +62,8 @@ namespace terrainOptimizer
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData(0, ref baseTerrain);
-            DA.GetData(1, ref newTerrain);
+            DA.GetData(0, ref _baseTerrain);
+            DA.GetData(1, ref _newTerrain);
             DA.GetData(2, ref slopeCut);
             DA.GetData(3, ref slopeFill);
             DA.GetData(4, ref roundCorners);
@@ -75,62 +77,87 @@ namespace terrainOptimizer
             List<List<Point3d>> cutInsidePoints = new List<List<Point3d>> { new List<Point3d>() };
             List<List<Point3d>> cutOutsidePoints = new List<List<Point3d>> { new List<Point3d>() };
 
-            if (roundCorners > 0 && newTerrain.IsPolyline())
-                newTerrain = Curve.CreateFilletCornersCurve(newTerrain, roundCorners, 0.00001, 0.00001);
+            if (roundCorners > 0 && _newTerrain.IsPolyline())
+                _newTerrain = Curve.CreateFilletCornersCurve(_newTerrain, roundCorners, 0.00001, 0.00001);
 
-            Polyline insidePolyline = newTerrain.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, false).ToPolyline();
+            Polyline insidePolyline = _newTerrain.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, false).ToPolyline();
             Polyline outline = CreateCutFillOutlinePoints(insidePolyline, cutInsidePoints, cutOutsidePoints, fillInsidePoints, fillOutsidePoints);
             if (!outline.IsClosed)
                 outline.Add(outline[0]);
+            sw.Stop();
+            Rhino.RhinoApp.WriteLine($"Initial raycasting: {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
+
 
             var outlineMesh = Mesh.CreateFromClosedPolyline(outline);
             if (outlineMesh == null)
                 return;
 
+            sw.Stop();
+            Rhino.RhinoApp.WriteLine($"Create outside mesh: {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
+
             List<Mesh> meshesFill = new List<Mesh>();
             MergeFirstAndLast(fillInsidePoints, fillOutsidePoints, out bool close);
             CreateMeshes(meshesFill, fillInsidePoints, fillOutsidePoints, close);
 
+            
             List<Mesh> meshesCut = new List<Mesh>();
             MergeFirstAndLast(cutInsidePoints, cutOutsidePoints, out close);
             CreateMeshes(meshesCut, cutInsidePoints, cutOutsidePoints, close);
 
 
-
-            Rhino.Geometry.Intersect.Intersection.MeshRay(baseTerrain, new Ray3d(new Point3d(outline[0].X, outline[0].Y, -999), Vector3d.ZAxis), out int[] intersectedFaces);
+            
+            Rhino.Geometry.Intersect.Intersection.MeshRay(_baseTerrain, new Ray3d(new Point3d(outline[0].X, outline[0].Y, -999), Vector3d.ZAxis), out int[] intersectedFaces);
 
             if (intersectedFaces.Length == 0)
                 return;
 
-
-            _facesToDelete = MeshTraversal.FindFacesCrossedByPolyline(ref baseTerrain, outline, intersectedFaces[0]);
-            var insideFaces = MeshTraversal.FindFacesWithinBoundary(ref baseTerrain, ref outlineMesh, _facesToDelete);
-
+            
+            _facesToDelete = MeshTraversal.FindFacesCrossedByPolyline(ref _baseTerrain, outline, intersectedFaces[0]);
+            sw.Stop();
+            Rhino.RhinoApp.WriteLine($"Faces crossed: {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
+            var insideFaces = MeshTraversal.FindFacesWithinBoundary(ref _baseTerrain, ref outlineMesh, _facesToDelete);
+            sw.Stop();
+            Rhino.RhinoApp.WriteLine($"Faces within boundary: {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
             _facesToDelete.UnionWith(insideFaces);
 
-            var hole = baseTerrain.Faces.ExtractFaces(_facesToDelete);
+            var hole = _baseTerrain.Faces.ExtractFaces(_facesToDelete);
 
 
             if (!insidePolyline.IsClosed)
                 insidePolyline.Add(insidePolyline[0]);
 
             var insideMesh = Mesh.CreateFromClosedPolyline(insidePolyline);
+
+
             insideMesh.RebuildNormals();
             if (insideMesh.Normals[0].Z < 0)
                 insideMesh.Flip(true, true, true);
-
+            sw.Stop();
+            Rhino.RhinoApp.WriteLine($"Create inside mesh: {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
 
             var nakedEdges = hole.GetNakedEdges();
+            sw.Stop();
+            Rhino.RhinoApp.WriteLine($"Get naked edges: {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
+            var patchMesh = new Mesh();
             if (nakedEdges != null)
             {
-                var patchMesh = CreateMeshWithHoles(new Polyline[] { nakedEdges[0], outline });
-                baseTerrain.Append(patchMesh);
-                baseTerrain.Compact();
+                patchMesh = CreateMeshWithHoles(new Polyline[] { nakedEdges[0], outline });
+                sw.Stop();
+                Rhino.RhinoApp.WriteLine($"Create patch: {sw.ElapsedMilliseconds} ms");
+                sw.Restart();
+                _baseTerrain.Append(patchMesh);
+                _baseTerrain.Compact();
             }
 
             
             //baseTerrain.Weld(Math.PI);
-            Rhino.RhinoApp.WriteLine("Total: " + sw.ElapsedMilliseconds + " ms");
+            Rhino.RhinoApp.WriteLine("Rest: " + sw.ElapsedMilliseconds + " ms");
             sw.Stop();
 
             string stats = null;
@@ -146,7 +173,7 @@ namespace terrainOptimizer
 
 
 
-            DA.SetData(0, baseTerrain);
+            DA.SetData(0, _baseTerrain);
             DA.SetDataList(1, meshesCut);
             DA.SetDataList(2, meshesFill);
             DA.SetDataList(3, new Curve[] { outline.ToPolylineCurve() });
@@ -171,6 +198,12 @@ namespace terrainOptimizer
             Polyline outline = new Polyline();
             double slope;
             int multiplier = 1; // TODO check direction
+
+            DHARTAPI.Geometry.MeshInfo meshinfo = new DHARTAPI.Geometry.MeshInfo(_baseTerrain.Faces.ToIntArray(true), _baseTerrain.Vertices.ToFloatArray());
+            DHARTAPI.RayTracing.EmbreeBVH bvh = new DHARTAPI.RayTracing.EmbreeBVH(meshinfo);
+
+
+            var knots = insidePolyline.ToNurbsCurve().Knots;
 
             for (int i = 0; i < insidePolyline.Count; i++)
             {
@@ -205,17 +238,19 @@ namespace terrainOptimizer
                     }
                 }
 
-                double t = insidePolyline.ClosestParameter(insidePolyline[i]);
-                Vector3d normal = Vector3d.CrossProduct(insidePolyline.TangentAt(t), Vector3d.ZAxis * multiplier);
+                Vector3d normal = Vector3d.CrossProduct(insidePolyline.TangentAt(knots[i]), Vector3d.ZAxis * multiplier);
                 normal.Unitize();
                 normal.Z = slope;
 
+                float[] origin = new float[] { (float)insidePolyline[i].X, (float)insidePolyline[i].Y, (float)insidePolyline[i].Z };
+                float[] direction = new float[] { (float)normal.X, (float)normal.Y, (float)normal.Z };
                 var ray = new Ray3d(insidePolyline[i], normal);
-                var meshRayIntersection = Rhino.Geometry.Intersect.Intersection.MeshRay(baseTerrain, ray);
+                var intersection = EmbreeRaytracer.IntersectForDistance(bvh, origin, direction, 100);
 
-                if (meshRayIntersection < maxDistance)
+                if (intersection.distance < maxDistance)
                 {
-                    var point = ray.PointAt(meshRayIntersection);
+                    //var point = ray.PointAt(meshRayIntersection);
+                    var point = ray.PointAt(intersection.distance);
                     outline.Add(point);
                     if (slope == -slopeFill)
                     {
@@ -303,7 +338,7 @@ namespace terrainOptimizer
         private bool CheckIfFill(Point3d point)
         {
             var ray = new Ray3d(point, -Vector3d.ZAxis);
-            var meshRayIntersection = Rhino.Geometry.Intersect.Intersection.MeshRay(baseTerrain, ray);
+            var meshRayIntersection = Rhino.Geometry.Intersect.Intersection.MeshRay(_baseTerrain, ray);
             return meshRayIntersection == double.NegativeInfinity ? false : true;
         }
 

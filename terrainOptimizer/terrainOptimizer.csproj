@@ -35,6 +35,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="DHARTAPICSharp">
+      <HintPath>Deps\DHARTAPICSharp.dll</HintPath>
+    </Reference>
     <Reference Include="Eto, Version=2.6.0.0, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>packages\RhinoCommon.7.10.21256.17001\lib\net48\Eto.dll</HintPath>
     </Reference>
@@ -70,6 +73,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Deps\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
