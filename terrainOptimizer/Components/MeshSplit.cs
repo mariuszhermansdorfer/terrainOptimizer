@@ -3,12 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using DHARTAPI.NativeUtils.CommonNativeArrays;
 using DHARTAPI.RayTracing;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
-
-
+using terrainOptimizer.Helpers;
 
 namespace terrainOptimizer
 {
@@ -71,6 +72,7 @@ namespace terrainOptimizer
 
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
+
 
             List<List<Point3d>> fillInsidePoints = new List<List<Point3d>> { new List<Point3d>() };
             List<List<Point3d>> fillOutsidePoints = new List<List<Point3d>> { new List<Point3d>() };
@@ -155,10 +157,27 @@ namespace terrainOptimizer
                 _baseTerrain.Compact();
             }
 
-            
-            //baseTerrain.Weld(Math.PI);
-            Rhino.RhinoApp.WriteLine("Rest: " + sw.ElapsedMilliseconds + " ms");
+
+            int iter = 10;
+            float len = 0.5f;
+
+            for (int i = 0; i < meshesCut.Count; i++)
+                meshesCut[i] = Remesh(meshesCut[i], len, iter, 320);
+                
+
+            for (int i = 0; i < meshesFill.Count; i++)
+                meshesFill[i] = Remesh(meshesFill[i], len, iter, 320);
+
+            //insideMesh = Remesh(insideMesh, 3f, 3, 320);
+
+
+
             sw.Stop();
+            Rhino.RhinoApp.WriteLine($"Remesh: {sw.ElapsedMilliseconds} ms");
+            sw.Restart();
+
+            //baseTerrain.Weld(Math.PI);
+
 
             string stats = null;
             if (close && meshesFill.Count == 0)
@@ -182,6 +201,36 @@ namespace terrainOptimizer
             DA.SetData(6, insideMesh);
             DA.SetData(7, stats);
 
+        }
+
+        private Mesh Remesh(Mesh mesh, float targetLength, int iterations, double angle)
+        {
+            var remesh = NativeMethods.CreateSurfaceMeshFromRawArrays(mesh.Vertices.ToFloatArray(), mesh.Faces.ToIntArray(true), mesh.Vertices.Count * 3, mesh.Faces.Count * 3);
+
+            NativeMethods.Remesh(remesh, targetLength, iterations, angle);
+
+            var f = NativeMethods.FacesToIntArray(remesh);
+            var v = NativeMethods.VerticesToFloatArray(remesh);
+            var fi = NativeMethods.FacesCount(remesh);
+            var vi = NativeMethods.VerticesCount(remesh);
+
+            int[] faces = new int[fi];
+            Marshal.Copy(f, faces, 0, fi);
+
+            float[] vertices = new float[vi];
+            Marshal.Copy(v, vertices, 0, vi);
+
+            NativeMethods.DeleteFacesArray(f);
+            NativeMethods.DeleteVertexArray(v);
+
+            var result = new Mesh();
+            for (int i = 0; i < fi; i += 3)
+                result.Faces.AddFace(faces[i], faces[i + 1], faces[i + 2]);
+
+            for (int i = 0; i < vi; i += 3)
+                result.Vertices.Add(vertices[i], vertices[i + 1], vertices[i + 2]);
+
+            return result;
         }
 
         private Polyline FlattenPolyline(Polyline polyline)
