@@ -32,5 +32,26 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("pmp.dll")]
         public static extern void DeleteVertexArray(IntPtr vertexArray);
+
+        [DllImport("geometry-central.dll")]
+        public static extern IntPtr CreateMeshFromFloatArray(int[] faces, int facesLength);
+
+        [DllImport("geometry-central.dll")]
+        public static extern IntPtr CreateVertexGeometry(IntPtr mesh, float[] vertices, int verticesLength);
+
+        [DllImport("geometry-central.dll")]
+        public static extern void GCRemesh(IntPtr mesh, IntPtr vertexGeometry, double targetLength, int iterations, int style);
+
+        [DllImport("geometry-central.dll")]
+        public static extern IntPtr GCFacesToIntArray(IntPtr mesh);
+
+        [DllImport("geometry-central.dll")]
+        public static extern IntPtr GCVerticesToFloatArray(IntPtr mesh, IntPtr vertexGeometry);
+
+        [DllImport("geometry-central.dll")]
+        public static extern int GCVerticesCount(IntPtr mesh);
+
+        [DllImport("geometry-central.dll")]
+        public static extern int GCFacesCount(IntPtr mesh);
     }
 }

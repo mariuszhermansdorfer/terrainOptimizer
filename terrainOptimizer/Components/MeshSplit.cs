@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using DHARTAPI.Geometry;
 using DHARTAPI.NativeUtils.CommonNativeArrays;
 using DHARTAPI.RayTracing;
 using Grasshopper.Kernel;
@@ -54,6 +55,9 @@ namespace terrainOptimizer
         Mesh _baseTerrain;
         Curve _newTerrain;
 
+        MeshInfo _meshInfo;
+        EmbreeBVH _bvh;
+
         double slopeCut;
         double slopeFill;
         double roundCorners;
@@ -102,20 +106,21 @@ namespace terrainOptimizer
             List<Mesh> meshesFill = new List<Mesh>();
             MergeFirstAndLast(fillInsidePoints, fillOutsidePoints, out bool close);
             CreateMeshes(meshesFill, fillInsidePoints, fillOutsidePoints, close);
+            //var fill = DefineMeshConnectivity(fillInsidePoints, fillOutsidePoints, close);
 
-            
+
             List<Mesh> meshesCut = new List<Mesh>();
             MergeFirstAndLast(cutInsidePoints, cutOutsidePoints, out close);
             CreateMeshes(meshesCut, cutInsidePoints, cutOutsidePoints, close);
 
 
-            
+
             Rhino.Geometry.Intersect.Intersection.MeshRay(_baseTerrain, new Ray3d(new Point3d(outline[0].X, outline[0].Y, -999), Vector3d.ZAxis), out int[] intersectedFaces);
 
             if (intersectedFaces.Length == 0)
                 return;
 
-            
+
             _facesToDelete = MeshTraversal.FindFacesCrossedByPolyline(ref _baseTerrain, outline, intersectedFaces[0]);
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Faces crossed: {sw.ElapsedMilliseconds} ms");
@@ -146,10 +151,21 @@ namespace terrainOptimizer
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Get naked edges: {sw.ElapsedMilliseconds} ms");
             sw.Restart();
-            var patchMesh = new Mesh();
+
+
+
             if (nakedEdges != null)
             {
-                patchMesh = CreateMeshWithHoles(new Polyline[] { nakedEdges[0], outline });
+                //List<Point3d> pts = new List<Point3d>();
+                //foreach (var p in nakedEdges[0])
+                //    pts.Add(p);
+
+                //foreach (var p in outline)
+                //    pts.Add(p);
+
+                //var patchMesh = Mesh.CreatePatch(nakedEdges[0], 1, null, new Curve[] { outline.ToNurbsCurve() }, null, pts, false, 0);
+
+                var patchMesh = CreateMeshWithHoles(new Polyline[] { nakedEdges[0], outline });
                 sw.Stop();
                 Rhino.RhinoApp.WriteLine($"Create patch: {sw.ElapsedMilliseconds} ms");
                 sw.Restart();
@@ -158,19 +174,25 @@ namespace terrainOptimizer
             }
 
 
-            int iter = 10;
-            float len = 0.5f;
 
-            for (int i = 0; i < meshesCut.Count; i++)
+
+            sw.Restart();
+            int iter = 3;
+            float len = 1f;
+            
+            Parallel.For(0, meshesCut.Count, i =>
+            {
                 meshesCut[i] = Remesh(meshesCut[i], len, iter, 320);
-                
+            });
 
-            for (int i = 0; i < meshesFill.Count; i++)
+
+            Parallel.For(0, meshesFill.Count, i =>
+            {
                 meshesFill[i] = Remesh(meshesFill[i], len, iter, 320);
+            });
 
-            //insideMesh = Remesh(insideMesh, 3f, 3, 320);
 
-
+            
 
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Remesh: {sw.ElapsedMilliseconds} ms");
@@ -203,16 +225,16 @@ namespace terrainOptimizer
 
         }
 
-        private Mesh Remesh(Mesh mesh, float targetLength, int iterations, double angle)
+        private Mesh RemeshRawArray(Tuple<List<int>, List<float>> connectivity, float targetLength, int iterations, double angle)
         {
-            var remesh = NativeMethods.CreateSurfaceMeshFromRawArrays(mesh.Vertices.ToFloatArray(), mesh.Faces.ToIntArray(true), mesh.Vertices.Count * 3, mesh.Faces.Count * 3);
-
-            NativeMethods.Remesh(remesh, targetLength, iterations, angle);
-
-            var f = NativeMethods.FacesToIntArray(remesh);
-            var v = NativeMethods.VerticesToFloatArray(remesh);
-            var fi = NativeMethods.FacesCount(remesh);
-            var vi = NativeMethods.VerticesCount(remesh);
+            
+            var m = NativeMethods.CreateMeshFromFloatArray(connectivity.Item1.ToArray(), connectivity.Item1.Count);
+            var verts = NativeMethods.CreateVertexGeometry(m, connectivity.Item2.ToArray(), connectivity.Item2.Count);
+            NativeMethods.GCRemesh(m, verts, targetLength, iterations, 1);
+            var f = NativeMethods.GCFacesToIntArray(m);
+            var v = NativeMethods.GCVerticesToFloatArray(m, verts);
+            var fi = NativeMethods.GCFacesCount(m);
+            var vi = NativeMethods.GCVerticesCount(m);
 
             int[] faces = new int[fi];
             Marshal.Copy(f, faces, 0, fi);
@@ -220,8 +242,39 @@ namespace terrainOptimizer
             float[] vertices = new float[vi];
             Marshal.Copy(v, vertices, 0, vi);
 
-            NativeMethods.DeleteFacesArray(f);
-            NativeMethods.DeleteVertexArray(v);
+
+            //NativeMethods.DeleteFacesArray(f);
+            //NativeMethods.DeleteVertexArray(v);
+
+            var result = new Mesh();
+            for (int i = 0; i < fi; i += 3)
+                result.Faces.AddFace(faces[i], faces[i + 1], faces[i + 2]);
+
+            for (int i = 0; i < vi; i += 3)
+                result.Vertices.Add(vertices[i], vertices[i + 1], vertices[i + 2]);
+
+            return result;
+        }
+
+        private Mesh Remesh(Mesh mesh, float targetLength, int iterations, double angle)
+        {
+            var m = NativeMethods.CreateMeshFromFloatArray(mesh.Faces.ToIntArray(true), mesh.Faces.Count * 3);
+            var verts = NativeMethods.CreateVertexGeometry(m, mesh.Vertices.ToFloatArray(), mesh.Vertices.Count * 3);
+            NativeMethods.GCRemesh(m, verts, targetLength, iterations, 1);
+            var f = NativeMethods.GCFacesToIntArray(m);
+            var v = NativeMethods.GCVerticesToFloatArray(m, verts);
+            var fi = NativeMethods.GCFacesCount(m);
+            var vi = NativeMethods.GCVerticesCount(m);
+
+            int[] faces = new int[fi];
+            Marshal.Copy(f, faces, 0, fi);
+
+            float[] vertices = new float[vi];
+            Marshal.Copy(v, vertices, 0, vi);
+
+
+            //NativeMethods.DeleteFacesArray(f);
+            //NativeMethods.DeleteVertexArray(v);
 
             var result = new Mesh();
             for (int i = 0; i < fi; i += 3)
@@ -248,9 +301,12 @@ namespace terrainOptimizer
             double slope;
             int multiplier = 1; // TODO check direction
 
-            DHARTAPI.Geometry.MeshInfo meshinfo = new DHARTAPI.Geometry.MeshInfo(_baseTerrain.Faces.ToIntArray(true), _baseTerrain.Vertices.ToFloatArray());
-            DHARTAPI.RayTracing.EmbreeBVH bvh = new DHARTAPI.RayTracing.EmbreeBVH(meshinfo);
-
+            if (_meshInfo == null)
+            {
+                _meshInfo = new MeshInfo(_baseTerrain.Faces.ToIntArray(true), _baseTerrain.Vertices.ToFloatArray());
+                _bvh = new EmbreeBVH(_meshInfo);
+            }
+                
 
             var knots = insidePolyline.ToNurbsCurve().Knots;
 
@@ -294,7 +350,7 @@ namespace terrainOptimizer
                 float[] origin = new float[] { (float)insidePolyline[i].X, (float)insidePolyline[i].Y, (float)insidePolyline[i].Z };
                 float[] direction = new float[] { (float)normal.X, (float)normal.Y, (float)normal.Z };
                 var ray = new Ray3d(insidePolyline[i], normal);
-                var intersection = EmbreeRaytracer.IntersectForDistance(bvh, origin, direction, 100);
+                var intersection = EmbreeRaytracer.IntersectForDistance(_bvh, origin, direction, 100);
 
                 if (intersection.distance < maxDistance)
                 {
@@ -309,8 +365,8 @@ namespace terrainOptimizer
                     {
                         // Used to calculate volumes
                         // TODO assign this parameter per each object
-                        var slopeDistance = point.DistanceTo(insidePolyline[i]);
-                        minDiagonalDepth = slopeDistance < minDiagonalDepth ? slopeDistance : minDiagonalDepth;
+                        //var slopeDistance = point.DistanceTo(insidePolyline[i]);
+                        //minDiagonalDepth = slopeDistance < minDiagonalDepth ? slopeDistance : minDiagonalDepth;
                         // END TODO
 
                         cutInsidePoints[cutInsidePoints.Count - 1].Add(insidePolyline[i]);
@@ -324,6 +380,75 @@ namespace terrainOptimizer
             return outline;
         }
 
+
+        private List<Tuple<List<int>, List<float>>> DefineMeshConnectivity(List<List<Point3d>> inside, List<List<Point3d>> outside, bool close)
+        {
+            var result = new List<Tuple<List<int>, List<float>>>();
+            for (int i = 0; i < inside.Count; i++)
+            {
+                if (inside[i].Count == 0)
+                    continue;
+
+                List<int> faces = new List<int>();
+                List<float> vertices = new List<float>();
+
+                for (int j = 0; j < inside[i].Count; j++)
+                {
+                    vertices.Add((float)inside[i][j].X);
+                    vertices.Add((float)inside[i][j].Y);
+                    vertices.Add((float)inside[i][j].Z);
+                }
+
+                for (int j = 0; j < outside[i].Count; j++)
+                {
+                    vertices.Add((float)outside[i][j].X);
+                    vertices.Add((float)outside[i][j].Y);
+                    vertices.Add((float)outside[i][j].Z);
+                }
+
+                int index = inside[i].Count;
+                if (close)
+                {
+                    for (int j = 0; j < index - 1; j++)
+                    {
+                        faces.Add(j);
+                        faces.Add(j + index + 1);
+                        faces.Add(j + index);
+                        faces.Add(j + 1);
+                        faces.Add(j + index + 1);
+                        faces.Add(j);
+                    }
+                    faces.Add(index - 1);
+                    faces.Add(index);
+                    faces.Add(index + outside[i].Count - 1);
+                    faces.Add(0);
+                    faces.Add(index);
+                    faces.Add(index - 1);
+                }
+                else
+                {
+                    // Starting triangle
+                    faces.Add(0);
+                    faces.Add(1);
+                    faces.Add(index);
+                    for (int j = 1; j < index - 1; j++)
+                    {
+                        faces.Add(j);
+                        faces.Add(j + index);
+                        faces.Add(j + index - 1);
+                        faces.Add(j + 1);
+                        faces.Add(j + index);
+                        faces.Add(j);
+                    }
+                    // Ending triangle
+                    faces.Add(index - 1);
+                    faces.Add(index + index - 3);
+                    faces.Add(index - 2);
+                }
+                result.Add(new Tuple<List<int>, List<float>>(faces, vertices));
+            }
+            return result;
+        }
 
         private void CreateMeshes(List<Mesh> resultingMeshes, List<List<Point3d>> inside, List<List<Point3d>> outside, bool close)
         {
