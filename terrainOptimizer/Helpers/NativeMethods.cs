@@ -53,5 +53,28 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("geometry-central.dll")]
         public static extern int GCFacesCount(IntPtr mesh);
+
+        [DllImport("geometry-central.dll")]
+        public static extern void PokeFace(IntPtr mesh, IntPtr vertexGeometry, int faceId);
+
+        [DllImport("geometry-central.dll")]
+        public static extern void ProjectPolylineToMesh(IntPtr mesh, IntPtr vertexGeometry, double[] polyline, int faceId, int count);
+
+        [DllImport("geometry-central.dll")]
+        public static extern GCMesh MeshSurgery(IntPtr mesh, float[] vertices, int verticesLength, int faceId);
+
+        [DllImport("geometry-central.dll")]
+        public static extern void CutHole(IntPtr mesh, int faceId);
+
+        [DllImport("geometry-central.dll")]
+        public static extern void CutMeshHole(IntPtr mesh, IntPtr vertexGeometry, double[] polyline, int faceId, int count); 
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct GCMesh
+        {
+            public IntPtr Mesh;
+            public IntPtr Vertices;
+        }
+
     }
 }

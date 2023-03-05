@@ -213,13 +213,12 @@ namespace terrainOptimizer
             }
 
 
-
             DA.SetData(0, _baseTerrain);
             DA.SetDataList(1, meshesCut);
             DA.SetDataList(2, meshesFill);
             DA.SetDataList(3, new Curve[] { outline.ToPolylineCurve() });
             //DA.SetDataList(4, new Point3d[] {l.From, l.To});
-           // DA.SetDataList(5, bbb);
+            // DA.SetDataList(5, bbb);
             DA.SetData(6, insideMesh);
             DA.SetData(7, stats);
 
@@ -241,6 +240,7 @@ namespace terrainOptimizer
 
             float[] vertices = new float[vi];
             Marshal.Copy(v, vertices, 0, vi);
+
 
 
             //NativeMethods.DeleteFacesArray(f);

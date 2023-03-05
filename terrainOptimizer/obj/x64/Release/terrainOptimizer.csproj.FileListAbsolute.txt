@@ -1,0 +1,11 @@
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\x64\Release\terrainOptimizer.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\x64\Release\terrainOptimizer.pdb
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\x64\Release\DHARTAPICSharp.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\x64\Release\System.Memory.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\x64\Release\System.Numerics.Vectors.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\x64\Release\System.Buffers.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\x64\Release\terrainOptimizer.csproj.AssemblyReference.cache
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\x64\Release\terrainOptimizer.csproj.CoreCompileInputs.cache
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\x64\Release\terrainOptimizer.csproj.CopyComplete
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\x64\Release\terrainOptimizer.dll
+C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\x64\Release\terrainOptimizer.pdb

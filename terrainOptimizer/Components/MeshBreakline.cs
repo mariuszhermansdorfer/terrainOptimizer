@@ -96,9 +96,9 @@ namespace terrainOptimizer
             }
 
 
-            //baseTerrain.Weld(Math.PI);
+            baseTerrain.Weld(Math.PI);
 
-            Rhino.RhinoApp.WriteLine("Total: " + sw.ElapsedMilliseconds + " ms");
+            Rhino.RhinoApp.WriteLine("Native Rhino (Old Method): " + sw.ElapsedMilliseconds + " ms");
             sw.Stop();
 
 
