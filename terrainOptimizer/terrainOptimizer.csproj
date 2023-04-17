@@ -97,6 +97,7 @@
     <Compile Include="Components\GHC_terrainOptimizer.cs" />
     <Compile Include="Components\MeshBreakline.cs" />
     <Compile Include="Components\MeshSplit.cs" />
+    <Compile Include="Components\OpenVDB.cs" />
     <Compile Include="Components\Surgery.cs" />
     <Compile Include="Helpers\MeshTraversal.cs" />
     <Compile Include="Helpers\NativeMethods.cs" />

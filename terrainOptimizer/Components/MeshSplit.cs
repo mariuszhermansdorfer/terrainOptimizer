@@ -180,16 +180,16 @@ namespace terrainOptimizer
             int iter = 3;
             float len = 1f;
             
-            Parallel.For(0, meshesCut.Count, i =>
-            {
-                meshesCut[i] = Remesh(meshesCut[i], len, iter, 320);
-            });
+            //Parallel.For(0, meshesCut.Count, i =>
+            //{
+            //    meshesCut[i] = Remesh(meshesCut[i], len, iter, 320);
+            //});
 
 
-            Parallel.For(0, meshesFill.Count, i =>
-            {
-                meshesFill[i] = Remesh(meshesFill[i], len, iter, 320);
-            });
+            //Parallel.For(0, meshesFill.Count, i =>
+            //{
+            //    meshesFill[i] = Remesh(meshesFill[i], len, iter, 320);
+            //});
 
 
             

@@ -66,7 +66,6 @@ namespace terrainOptimizer
             var verts = NativeMethods.CreateVertexGeometry(m, ver, _baseTerrain.Vertices.Count * 3);
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
-            //var mn = NativeMethods.MeshSurgery(m, ver, _baseTerrain.Vertices.Count * 3, intersectedFaces[0]);
             NativeMethods.CutMeshHole(m, verts, polyline, intersectedFaces[0], polyline.Length);
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"C++ Logic (New Method): {sw.ElapsedMilliseconds} ms");
@@ -77,10 +76,6 @@ namespace terrainOptimizer
             var fi = NativeMethods.GCFacesCount(m);
             var vi = NativeMethods.GCVerticesCount(m);
 
-            //var f = NativeMethods.GCFacesToIntArray(mn.Mesh);
-            //var v = NativeMethods.GCVerticesToFloatArray(mn.Mesh, mn.Vertices);
-            //var fi = NativeMethods.GCFacesCount(mn.Mesh);
-            //var vi = NativeMethods.GCVerticesCount(mn.Mesh);
 
             int[] faces = new int[fi];
             Marshal.Copy(f, faces, 0, fi);

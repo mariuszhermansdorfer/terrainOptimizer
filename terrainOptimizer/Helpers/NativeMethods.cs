@@ -1,32 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 
 namespace terrainOptimizer.Helpers
 {
     public class NativeMethods
     {
-        [DllImport("pmp.dll")]
-        public static extern IntPtr CreateSurfaceMeshFromRawArrays(float[] vertices, int[] faces, int verticesLength, int facesLength);
-
-        [DllImport("pmp.dll")]
-        public static extern void Remesh(IntPtr mesh, float targetLength, int amountOfIterations, double angle);
-
-        [DllImport("pmp.dll")]
-        public static extern IntPtr FacesToIntArray(IntPtr mesh);
-
-        [DllImport("pmp.dll")]
-        public static extern IntPtr VerticesToFloatArray(IntPtr mesh);
-
-        [DllImport("pmp.dll")]
-        public static extern int VerticesCount(IntPtr mesh);
-
-        [DllImport("pmp.dll")]
-        public static extern int FacesCount(IntPtr mesh);
-
+       
         [DllImport("pmp.dll")]
         public static extern void DeleteFacesArray(IntPtr facesArray);
 
@@ -55,16 +34,7 @@ namespace terrainOptimizer.Helpers
         public static extern int GCFacesCount(IntPtr mesh);
 
         [DllImport("geometry-central.dll")]
-        public static extern void PokeFace(IntPtr mesh, IntPtr vertexGeometry, int faceId);
-
-        [DllImport("geometry-central.dll")]
         public static extern void ProjectPolylineToMesh(IntPtr mesh, IntPtr vertexGeometry, double[] polyline, int faceId, int count);
-
-        [DllImport("geometry-central.dll")]
-        public static extern GCMesh MeshSurgery(IntPtr mesh, float[] vertices, int verticesLength, int faceId);
-
-        [DllImport("geometry-central.dll")]
-        public static extern void CutHole(IntPtr mesh, int faceId);
 
         [DllImport("geometry-central.dll")]
         public static extern void CutMeshHole(IntPtr mesh, IntPtr vertexGeometry, double[] polyline, int faceId, int count); 
@@ -75,6 +45,32 @@ namespace terrainOptimizer.Helpers
             public IntPtr Mesh;
             public IntPtr Vertices;
         }
+
+
+        [DllImport("openvdb.dll")]
+        public static extern IntPtr CreateTransform(float voxelSize);
+
+        [DllImport("openvdb.dll")]
+        public static extern IntPtr CreateFloatGrid(IntPtr transformPtr);
+
+        [DllImport("openvdb.dll")]
+        public static extern IntPtr CreateBoundingBox(IntPtr floatGrid, float minX, float minY, float minZ, float maxX, float maxY, float maxZ);
+
+        [DllImport("openvdb.dll")]
+        public static extern IntPtr CreateMeshGrid(IntPtr transformPtr, float[] vertices, int verticesLength, int[] faces, int facesLength);
+
+        [DllImport("openvdb.dll")]
+        public static extern void MergeGridsAndOutput(float voxelSize, IntPtr gridPtr, IntPtr meshGridPtr, IntPtr bboxPtr);
+
+        [DllImport("openvdb.dll")]
+        public static extern void DeleteFloatGrid(IntPtr grid);
+
+        [DllImport("openvdb.dll")]
+        public static extern void DeleteBoundingBox(IntPtr grid);
+
+        [DllImport("openvdb.dll")]
+        public static extern void CreateMeshGridFromBoundingBox();
+
 
     }
 }
