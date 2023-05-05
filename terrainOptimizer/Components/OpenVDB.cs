@@ -58,15 +58,15 @@ namespace terrainOptimizer.Components
             //NativeMethods.CreateMeshGridFromBoundingBox();
 
             var transform = NativeMethods.CreateTransform((float)voxelSize);
-            var floatGrid = NativeMethods.CreateFloatGrid(transform);
-            var bbox = NativeMethods.CreateBoundingBox(floatGrid, (float)min.X, (float)min.Y, (float)min.Z, (float)max.X, (float)max.Y, (float)max.Z);
+            //var floatGrid = NativeMethods.CreateFloatGrid(transform);
+            //var bbox = NativeMethods.CreateBoundingBox(floatGrid, (float)min.X, (float)min.Y, (float)min.Z, (float)max.X, (float)max.Y, (float)max.Z);
             var meshGrid = NativeMethods.CreateMeshGrid(transform, verts, verts.Length, faces, faces.Length);
-            NativeMethods.MergeGridsAndOutput((float)voxelSize, floatGrid, meshGrid, bbox);
-            NativeMethods.DeleteBoundingBox(bbox);
-            NativeMethods.DeleteFloatGrid(floatGrid);
+            //NativeMethods.MergeGridsAndOutput((float)voxelSize, floatGrid, meshGrid, bbox);
+            //NativeMethods.DeleteBoundingBox(bbox);
+            //NativeMethods.DeleteFloatGrid(floatGrid);
 
             sw.Stop();
-            Rhino.RhinoApp.WriteLine("VDB: " + sw.ElapsedMilliseconds);
+            Rhino.RhinoApp.WriteLine($"VDB: {sw.ElapsedMilliseconds} ms");
 
         }
 

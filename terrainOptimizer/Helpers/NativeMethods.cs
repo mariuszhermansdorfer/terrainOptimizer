@@ -72,5 +72,57 @@ namespace terrainOptimizer.Helpers
         public static extern void CreateMeshGridFromBoundingBox();
 
 
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct BoolMesh
+        {
+            public IntPtr Triangles;
+            public IntPtr Coordinates;
+            public IntPtr Labels;
+            public int TrianglesLength;
+            public int CoordinatesLength;
+            public int LabelsLength;
+        }
+
+        [DllImport("mesh_booleans.dll")]
+        public static extern IntPtr CreateBoolMesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
+
+        [DllImport("mesh_booleans.dll")]
+        public static extern BoolResults CollideBaseWithCutter(IntPtr baseMesh, int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength, int operationType);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct BoolResults
+        {
+            public IntPtr Faces;
+            public int FacesLength;
+            public IntPtr Vertices;
+            public int VerticesLength;
+        }
+
+        [DllImport("mesh_booleans.dll")]
+        public static extern IntPtr Trimesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
+
+        [DllImport("mesh_booleans.dll")]
+        public static extern BoolResults CinoRemesh(IntPtr baseMesh, int iterations, double targetLength, bool preserve);
+
+
+        [DllImport("embree_raytracer.dll")]
+        public static extern void RaytracerTest(float[] vertices, int verticesLength, int[] faces, int facesLength);
+
+        [DllImport("embree_raytracer.dll")]
+        public static extern void createBaseMesh(float[] vertices1, int verticesLength1, int[] faces1, int facesLength1, float[] vertices2, int verticesLength2, int[] faces2, int facesLength2);
+
+        [DllImport("embree_raytracer.dll")]
+        public static extern void BVHTest();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct OffsetResults
+        {
+            public IntPtr Vertices;
+            public int VerticesLength;
+        }
+        [DllImport("Wrapper.dll")]
+        public static extern OffsetResults OffsetTest(float[] coordinates, int numCoordinates, double delta, double miterLimit, int precision, double arcTolerance);
+
     }
 }
