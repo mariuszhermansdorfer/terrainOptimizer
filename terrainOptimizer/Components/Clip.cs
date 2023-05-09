@@ -56,15 +56,11 @@ namespace terrainOptimizer.Components
 
             float[] floats = new float[poly.Count * 3];
 
-            int j = 0;
-            for (int i = 0;i < poly.Count; i++)
+            for (int i = 0, j = 0; i < poly.Count; i++, j += 3)
             {
                 floats[j] = (float)poly[i].X;
-                j++;
-                floats[j] = (float)poly[i].Y;
-                j++;
-                floats[j] = (float)poly[i].Z;
-                j++;
+                floats[j + 1] = (float)poly[i].Y;
+                floats[j + 2] = (float)poly[i].Z;
             }
 
             var offsetResult = NativeMethods.Offset(floats, floats.Length, delta, miterLimit, precision, simplify, epsilon);
