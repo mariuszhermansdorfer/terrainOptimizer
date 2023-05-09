@@ -23,7 +23,8 @@ namespace terrainOptimizer.Components
             pManager.AddNumberParameter("delta", "delta", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("miterLimit", "miterLimit", "", GH_ParamAccess.item);
             pManager.AddIntegerParameter("precision", "precision", "", GH_ParamAccess.item);
-            pManager.AddNumberParameter("arcTolerance", "arcTolerance", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("epsilon", "epsilon", "", GH_ParamAccess.item);
+            pManager.AddBooleanParameter("simplify", "simplify", "", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
@@ -33,17 +34,18 @@ namespace terrainOptimizer.Components
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            int scale = 1000;
             Curve crv = null;
             double delta = 0;
             double miterLimit = 0;
             int precision = 0;
-            double arcTolerance = 0;
+            double epsilon = 0;
+            bool simplify = false;
             DA.GetData(0, ref crv);
             DA.GetData(1, ref delta);
             DA.GetData(2, ref miterLimit);
             DA.GetData(3, ref precision);
-            DA.GetData(4, ref arcTolerance);
+            DA.GetData(4, ref epsilon);
+            DA.GetData(5, ref simplify);
 
             Polyline poly;
 
@@ -61,18 +63,18 @@ namespace terrainOptimizer.Components
                 j++;
                 floats[j] = (float)poly[i].Y;
                 j++;
-                floats[j] = (float)poly[i].Z * scale;
+                floats[j] = (float)poly[i].Z;
                 j++;
             }
 
-            var p = NativeMethods.OffsetTest(floats, floats.Length, delta, miterLimit, precision, arcTolerance);
+            var offsetResult = NativeMethods.Offset(floats, floats.Length, delta, miterLimit, precision, simplify, epsilon);
 
-            float[] verts = new float[p.VerticesLength];
-            System.Runtime.InteropServices.Marshal.Copy(p.Vertices, verts, 0, p.VerticesLength);
+            float[] verts = new float[offsetResult.VerticesLength];
+            System.Runtime.InteropServices.Marshal.Copy(offsetResult.Vertices, verts, 0, offsetResult.VerticesLength);
 
             Polyline outCurve = new Polyline();
             for (int i = 0;i < verts.Length; i+=3)
-                outCurve.Add(new Point3d(verts[i], verts[i + 1], verts[i + 2]/scale));
+                outCurve.Add(new Point3d(verts[i], verts[i + 1], verts[i + 2]));
 
             if (!outCurve.IsClosed)
                 outCurve.Add(outCurve[0]);

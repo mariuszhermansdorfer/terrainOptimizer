@@ -121,8 +121,20 @@ namespace terrainOptimizer.Helpers
             public IntPtr Vertices;
             public int VerticesLength;
         }
-        [DllImport("Wrapper.dll")]
-        public static extern OffsetResults OffsetTest(float[] coordinates, int numCoordinates, double delta, double miterLimit, int precision, double arcTolerance);
+        [DllImport("ClipperApi.dll")]
+        public static extern OffsetResults Offset(float[] coordinates, int numCoordinates, double delta, double miterLimit, int precision, bool simplify, double epsilon);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WrapResults
+        {
+            public IntPtr Faces;
+            public int FacesLength;
+            public IntPtr Vertices;
+            public int VerticesLength;
+        }
+
+        [DllImport("rhino_mesh_wrap.dll")]
+        public static extern WrapResults TestWrap(float[] vertices, int verticesLength, int[] faces, int facesLength);
 
     }
 }

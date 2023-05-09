@@ -99,6 +99,7 @@
     <Compile Include="Components\MeshSplit.cs" />
     <Compile Include="Components\Boolean.cs" />
     <Compile Include="Components\Clip.cs" />
+    <Compile Include="Components\AlphaWrap.cs" />
     <Compile Include="Components\Raycasting.cs" />
     <Compile Include="Components\Remesh.cs" />
     <Compile Include="Components\OpenVDB.cs" />
