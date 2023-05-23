@@ -122,7 +122,14 @@ namespace terrainOptimizer.Helpers
             public int VerticesLength;
         }
         [DllImport("ClipperApi.dll")]
-        public static extern OffsetResults Offset(float[] coordinates, int numCoordinates, double delta, double miterLimit, int precision, bool simplify, double epsilon);
+        public static extern OffsetResults Offset3d(double[] coordinates, int numCoordinates, double delta, double miterLimit, int precision, bool simplify, double epsilon);
+
+        [DllImport("ClipperApi.dll")]
+        public static extern OffsetResults Offset2d(double[] coordinates, int numCoordinates, double delta, double miterLimit, int precision, bool simplify, double epsilon);
+
+        [DllImport("ClipperApi.dll")]
+        public static extern OffsetResults VariableOffset3d(double[] coordinates, int numCoordinates, double[] delta, double miterLimit, int precision, bool simplify, double epsilon);
+
 
         [StructLayout(LayoutKind.Sequential)]
         public struct WrapResults
@@ -134,7 +141,7 @@ namespace terrainOptimizer.Helpers
         }
 
         [DllImport("rhino_mesh_wrap.dll")]
-        public static extern WrapResults TestWrap(float[] vertices, int verticesLength, int[] faces, int facesLength);
+        public static extern WrapResults TestWrap(float[] vertices, int verticesLength, int[] faces, int facesLength, double alpha, double offset);
 
     }
 }

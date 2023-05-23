@@ -54,18 +54,24 @@ namespace terrainOptimizer.Components
             else
                 poly = crv.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
 
-            float[] floats = new float[poly.Count * 3];
+            double[] coordinates = new double[poly.Count * 3];
 
             for (int i = 0, j = 0; i < poly.Count; i++, j += 3)
             {
-                floats[j] = (float)poly[i].X;
-                floats[j + 1] = (float)poly[i].Y;
-                floats[j + 2] = (float)poly[i].Z;
+                coordinates[j] = poly[i].X;
+                coordinates[j + 1] = poly[i].Y;
+                coordinates[j + 2] = poly[i].Z;
             }
 
-            var offsetResult = NativeMethods.Offset(floats, floats.Length, delta, miterLimit, precision, simplify, epsilon);
+            // Add variable offset values
 
-            float[] verts = new float[offsetResult.VerticesLength];
+            double[] offset = new double[poly.Count];
+            for (int i = 0; i < poly.Count; i++)
+                offset[i] = 0.1 + (double)i / (double) poly.Count;
+
+            var offsetResult = NativeMethods.VariableOffset3d(coordinates, coordinates.Length, offset, miterLimit, precision, simplify, epsilon);
+
+            double[] verts = new double[offsetResult.VerticesLength];
             System.Runtime.InteropServices.Marshal.Copy(offsetResult.Vertices, verts, 0, offsetResult.VerticesLength);
 
             Polyline outCurve = new Polyline();
