@@ -92,7 +92,10 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\BooleanMR.cs" />
     <Compile Include="Components\Breakline.cs" />
+    <Compile Include="Components\BreaklineMR.cs" />
+    <Compile Include="Components\DistanceMap.cs" />
     <Compile Include="Components\GHC_MeshFlow.cs" />
     <Compile Include="Components\GHC_terrainOptimizer.cs" />
     <Compile Include="Components\MeshBreakline.cs" />
