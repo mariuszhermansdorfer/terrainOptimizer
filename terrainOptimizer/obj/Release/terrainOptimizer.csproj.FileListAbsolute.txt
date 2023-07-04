@@ -9,3 +9,14 @@ C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\System.Memo
 C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\System.Numerics.Vectors.dll
 C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\bin\System.Buffers.dll
 C:\Users\MRHE\Documents\GitHub\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.csproj.CopyComplete
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\bin\terrainOptimizer.dll
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\bin\terrainOptimizer.pdb
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\bin\DHARTAPICSharp.dll
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\bin\System.Memory.dll
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\bin\System.Numerics.Vectors.dll
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\bin\System.Buffers.dll
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.csproj.AssemblyReference.cache
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.csproj.CoreCompileInputs.cache
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.csproj.CopyComplete
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.dll
+C:\Users\mrhe\source\repos\mariuszhermansdorfer\terrainOptimizer\terrainOptimizer\obj\Release\terrainOptimizer.pdb
