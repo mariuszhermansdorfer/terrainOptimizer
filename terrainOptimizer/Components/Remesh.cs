@@ -31,6 +31,7 @@ namespace terrainOptimizer.Components
         {
             pManager.AddMeshParameter("MeshLib", "MeshLib", "", GH_ParamAccess.item);
         }
+        IntPtr meshMR = IntPtr.Zero;
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
@@ -49,11 +50,9 @@ namespace terrainOptimizer.Components
             DA.GetData(4, ref shift);
             DA.GetData(5, ref sharpAngle);
 
-
-            var faces = mesh.Faces.ToIntArray(true);
-            var vertices = mesh.Vertices.ToFloatArray();
-
-            var meshMR = NativeMeshMethods.CreateMesh(faces, faces.Length, vertices, vertices.Length);
+            if (meshMR == IntPtr.Zero)
+                meshMR = NativeMeshMethods.CreateMesh(mesh.Faces.ToIntArray(true), mesh.Faces.Count * 3, mesh.Vertices.ToFloatArray(), mesh.Vertices.Count * 3);
+            
             var pMR = NativeMeshMethods.RemeshMesh(meshMR, (float)target, (float)shift, iterations, (float)sharpAngle);
 
 

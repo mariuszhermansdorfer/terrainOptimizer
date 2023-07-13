@@ -39,7 +39,7 @@ namespace terrainOptimizer
             bool hole = false;
             DA.GetData(2, ref hole);
 
-            meshA = IntPtr.Zero;
+           // meshA = IntPtr.Zero;
 
             System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
 
