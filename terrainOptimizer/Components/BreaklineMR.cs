@@ -45,7 +45,7 @@ namespace terrainOptimizer
 
             if (meshA == IntPtr.Zero)
             {
-                meshA = NativeMethods.CreateMesh(_baseTerrain.Faces.ToIntArray(true), _baseTerrain.Faces.Count * 3, _baseTerrain.Vertices.ToFloatArray(), _baseTerrain.Vertices.Count * 3);
+                meshA = NativeMeshMethods.CreateMesh(_baseTerrain.Faces.ToIntArray(true), _baseTerrain.Faces.Count * 3, _baseTerrain.Vertices.ToFloatArray(), _baseTerrain.Vertices.Count * 3);
                 sw.Stop();
                 Rhino.RhinoApp.WriteLine($"Create Base Mesh: {sw.ElapsedMilliseconds} ms");
                 sw.Restart();
@@ -75,7 +75,7 @@ namespace terrainOptimizer
             Rhino.RhinoApp.WriteLine($"Convert Polyline: {sw.ElapsedMilliseconds} ms");
             sw.Restart();
 
-            var p = NativeMethods.CutMeshWithPolyline(meshA, polyline, polyline.Length, hole);
+            var p = NativeMeshMethods.CutMeshWithPolyline(meshA, polyline, polyline.Length, hole);
 
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Cut Mesh: {sw.ElapsedMilliseconds} ms");

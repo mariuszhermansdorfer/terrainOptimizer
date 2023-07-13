@@ -69,7 +69,7 @@ namespace terrainOptimizer.Components
             for (int i = 0; i < poly.Count; i++)
                 offset[i] = 0.1 + (double)i / (double) poly.Count;
 
-            var offsetResult = NativeMethods.VariableOffset3d(coordinates, coordinates.Length, offset, miterLimit, precision, simplify, epsilon);
+            var offsetResult = NativePolylineMethods.VariableOffset3d(coordinates, coordinates.Length, offset, miterLimit, precision, simplify, epsilon);
 
             double[] verts = new double[offsetResult.VerticesLength];
             System.Runtime.InteropServices.Marshal.Copy(offsetResult.Vertices, verts, 0, offsetResult.VerticesLength);

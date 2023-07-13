@@ -10,7 +10,7 @@ namespace terrainOptimizer.Components
     {
 
         public Boolean()
-          : base("bool", "bool",
+          : base("boolean", "boolean",
               "Description",
               "PHD", "Subcategory")
         {
@@ -34,32 +34,22 @@ namespace terrainOptimizer.Components
             int type = 0;
             DA.GetData(0, ref type);
 
-            Mesh baseTerrain = new Mesh();
-            DA.GetData(1, ref baseTerrain);
+            Mesh baseMesh = new Mesh();
+            DA.GetData(1, ref baseMesh);
 
             Mesh cutter = new Mesh();
             DA.GetData(2, ref cutter);
 
-            System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
-            var pointer = NativeMethods.CreateBoolMesh(baseTerrain.Faces.ToIntArray(true), baseTerrain.Faces.Count * 3, baseTerrain.Vertices.ToFloatArray(), baseTerrain.Vertices.Count * 3);
-            sw.Stop();
-            Rhino.RhinoApp.WriteLine($"Create Base Mesh: {sw.ElapsedMilliseconds} ms");
-            sw.Restart();
-            var p = NativeMethods.CollideBaseWithCutter(pointer, cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3, type); 
+            IntPtr meshA = NativeMeshMethods.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+            IntPtr meshB = NativeMeshMethods.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
+            var p = NativeMeshMethods.BooleanMeshes(meshA, meshB, (NativeMeshMethods.BooleanOperation)type);
 
-            sw.Stop();
-            Rhino.RhinoApp.WriteLine($"Boolean IRMB: {sw.ElapsedMilliseconds} ms");
-            sw.Restart();
 
             int[] faces = new int[p.FacesLength];
             Marshal.Copy(p.Faces, faces, 0, p.FacesLength);
 
             float[] verts = new float[p.VerticesLength];
             Marshal.Copy(p.Vertices, verts, 0, p.VerticesLength);
-
-            sw.Stop();
-            //Rhino.RhinoApp.WriteLine($"Copy Data Back: {sw.ElapsedMilliseconds} ms");
-            sw.Restart();
 
             var result = new Mesh();
             for (int i = 0; i < p.FacesLength; i += 3)
@@ -69,10 +59,9 @@ namespace terrainOptimizer.Components
                 result.Vertices.Add(verts[i], verts[i + 1], verts[i + 2]);
             //result.RebuildNormals();
 
-            sw.Stop();
-            Rhino.RhinoApp.WriteLine($"Rebuild mesh: {sw.ElapsedMilliseconds} ms");
 
             DA.SetData(0, result);
+            
         }
 
 
@@ -80,8 +69,6 @@ namespace terrainOptimizer.Components
         {
             get
             {
-                //You can add image files to your project resources and access them like this:
-                // return Resources.IconForThisComponent;
                 return null;
             }
         }
@@ -89,7 +76,7 @@ namespace terrainOptimizer.Components
 
         public override Guid ComponentGuid
         {
-            get { return new Guid("2FB3608C-150A-4E58-939E-E18C2E2F7596"); }
+            get { return new Guid("2FB4508C-150A-4E58-939E-E18C2E2F7596"); }
         }
     }
 }

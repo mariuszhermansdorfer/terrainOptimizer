@@ -54,9 +54,6 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DHARTAPICSharp">
-      <HintPath>Deps\DHARTAPICSharp.dll</HintPath>
-    </Reference>
     <Reference Include="Eto, Version=2.6.0.0, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>packages\RhinoCommon.7.10.21256.17001\lib\net48\Eto.dll</HintPath>
     </Reference>
@@ -92,24 +89,13 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Components\BooleanMR.cs" />
-    <Compile Include="Components\Breakline.cs" />
+    <Compile Include="Components\Boolean.cs" />
     <Compile Include="Components\BreaklineMR.cs" />
     <Compile Include="Components\DistanceMap.cs" />
-    <Compile Include="Components\GHC_MeshFlow.cs" />
-    <Compile Include="Components\GHC_terrainOptimizer.cs" />
-    <Compile Include="Components\MeshBreakline.cs" />
-    <Compile Include="Components\MeshSplit.cs" />
-    <Compile Include="Components\Boolean.cs" />
     <Compile Include="Components\Clip.cs" />
-    <Compile Include="Components\AlphaWrap.cs" />
-    <Compile Include="Components\Raycasting.cs" />
     <Compile Include="Components\Remesh.cs" />
-    <Compile Include="Components\OpenVDB.cs" />
-    <Compile Include="Components\Surgery.cs" />
-    <Compile Include="Helpers\MeshTraversal.cs" />
-    <Compile Include="Helpers\NativeMethods.cs" />
-    <Compile Include="Helpers\Structs.cs" />
+    <Compile Include="Helpers\NativeMeshMethods.cs" />
+    <Compile Include="Helpers\NativePolylineMethods.cs" />
     <Compile Include="terrainOptimizerInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
