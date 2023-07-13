@@ -90,7 +90,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Components\Boolean.cs" />
-    <Compile Include="Components\BreaklineMR.cs" />
+    <Compile Include="Components\Breakline.cs" />
     <Compile Include="Components\DistanceMap.cs" />
     <Compile Include="Components\Clip.cs" />
     <Compile Include="Components\Remesh.cs" />

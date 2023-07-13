@@ -32,10 +32,11 @@ namespace terrainOptimizer.Helpers
             DifferenceAB
         }
 
-        public enum CuttingDirection
+        public enum CuttingOperation
         {
-            Inside,
-            Outside
+            DeleteInside,
+            DeleteOutside,
+            None
         }
 
         [DllImport("MRMesh.dll")]
@@ -45,7 +46,7 @@ namespace terrainOptimizer.Helpers
         public static extern RawMeshArrays BooleanMeshes(IntPtr meshA, IntPtr meshb, BooleanOperation operation);
 
         [DllImport("MRMesh.dll")]
-        public static extern RawMeshArrays CutMeshWithPolyline(IntPtr meshA, float[] coordinates, int coordinatesLength, CuttingDirection direction);
+        public static extern RawMeshArrays CutMeshWithPolyline(IntPtr meshA, float[] coordinates, int coordinatesLength, CuttingOperation direction);
 
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays RemeshMesh(IntPtr mesh, float targetLength, float shift, int iterations, float sharpAngle);

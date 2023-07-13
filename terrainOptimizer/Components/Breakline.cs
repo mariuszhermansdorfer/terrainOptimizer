@@ -7,10 +7,10 @@ using terrainOptimizer.Helpers;
 
 namespace terrainOptimizer
 {
-    public class BreaklineMR : GH_Component
+    public class Breakline : GH_Component
     {
-        public BreaklineMR()
-          : base("BreaklineMR", "BreaklineMR",
+        public Breakline()
+          : base("Breakline", "Breakline",
               "Description",
               "PHD", "Subcategory")
         {
@@ -24,42 +24,32 @@ namespace terrainOptimizer
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddMeshParameter("result", "result", "", GH_ParamAccess.item);
-            pManager.AddCurveParameter("crv", "crv", "", GH_ParamAccess.item);
         }
 
-        Mesh _baseTerrain;
-        Curve _breakline;
-        IntPtr meshA = IntPtr.Zero;
 
+        IntPtr meshA = IntPtr.Zero;
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData(0, ref _baseTerrain);
-            DA.GetData(1, ref _breakline);
+            Mesh baseMesh = null;
+            Curve breakline = null;
             int direction = 0;
+            DA.GetData(0, ref baseMesh);
+            DA.GetData(1, ref breakline);
             DA.GetData(2, ref direction);
 
-           // meshA = IntPtr.Zero;
-
-            System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
-
             if (meshA == IntPtr.Zero)
-            {
-                meshA = NativeMeshMethods.CreateMesh(_baseTerrain.Faces.ToIntArray(true), _baseTerrain.Faces.Count * 3, _baseTerrain.Vertices.ToFloatArray(), _baseTerrain.Vertices.Count * 3);
-                sw.Stop();
-                Rhino.RhinoApp.WriteLine($"Create Base Mesh: {sw.ElapsedMilliseconds} ms");
-                sw.Restart();
-            }
+                meshA = NativeMeshMethods.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
 
 
             Polyline insidePolyline;
 
-            if (_breakline.IsPolyline())
-                _breakline.TryGetPolyline(out insidePolyline);
+            if (breakline.IsPolyline())
+                breakline.TryGetPolyline(out insidePolyline);
             else
-                insidePolyline = _breakline.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
+                insidePolyline = breakline.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
 
-            if (_breakline.IsClosed)
+            if (breakline.IsClosed)
                 insidePolyline.Add(insidePolyline[0]);
 
             float[] polyline = new float[insidePolyline.Count * 3];
@@ -71,33 +61,23 @@ namespace terrainOptimizer
                 polyline[j + 2] = (float)insidePolyline[i].Z;
             }
 
-            sw.Stop();
-            Rhino.RhinoApp.WriteLine($"Convert Polyline: {sw.ElapsedMilliseconds} ms");
-            sw.Restart();
+            var mesh = NativeMeshMethods.CutMeshWithPolyline(meshA, polyline, polyline.Length, (NativeMeshMethods.CuttingOperation)direction);
 
-            var p = NativeMeshMethods.CutMeshWithPolyline(meshA, polyline, polyline.Length, (NativeMeshMethods.CuttingDirection)direction);
+            int[] faces = new int[mesh.FacesLength];
+            Marshal.Copy(mesh.Faces, faces, 0, mesh.FacesLength);
 
-            sw.Stop();
-            Rhino.RhinoApp.WriteLine($"Cut Mesh: {sw.ElapsedMilliseconds} ms");
-
-            int[] faces = new int[p.FacesLength];
-            Marshal.Copy(p.Faces, faces, 0, p.FacesLength);
-
-            float[] verts = new float[p.VerticesLength];
-            Marshal.Copy(p.Vertices, verts, 0, p.VerticesLength);
-
+            float[] verts = new float[mesh.VerticesLength];
+            Marshal.Copy(mesh.Vertices, verts, 0, mesh.VerticesLength);
 
             var result = new Mesh();
-            for (int i = 0; i < p.FacesLength; i += 3)
+            for (int i = 0; i < mesh.FacesLength; i += 3)
                 result.Faces.AddFace(faces[i], faces[i + 1], faces[i + 2]);
 
-            for (int i = 0; i < p.VerticesLength; i += 3)
+            for (int i = 0; i < mesh.VerticesLength; i += 3)
                 result.Vertices.Add(verts[i], verts[i + 1], verts[i + 2]);
             //result.RebuildNormals();
 
             DA.SetData(0, result);
-            DA.SetData(1, insidePolyline.ToNurbsCurve());
-
         }
 
 
