@@ -28,7 +28,7 @@ namespace terrainOptimizer.Components
         {
             pManager.AddMeshParameter("result", "result", "", GH_ParamAccess.item);
         }
-
+        IntPtr meshA = IntPtr.Zero;
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             int type = 0;
@@ -40,10 +40,12 @@ namespace terrainOptimizer.Components
             Mesh cutter = new Mesh();
             DA.GetData(2, ref cutter);
 
-            IntPtr meshA = NativeMeshMethods.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+            if (meshA == IntPtr.Zero)
+                meshA = NativeMeshMethods.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+                        
             IntPtr meshB = NativeMeshMethods.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
             var p = NativeMeshMethods.BooleanMeshes(meshA, meshB, (NativeMeshMethods.BooleanOperation)type);
-
+            
 
             int[] faces = new int[p.FacesLength];
             Marshal.Copy(p.Faces, faces, 0, p.FacesLength);
@@ -58,7 +60,6 @@ namespace terrainOptimizer.Components
             for (int i = 0; i < p.VerticesLength; i += 3)
                 result.Vertices.Add(verts[i], verts[i + 1], verts[i + 2]);
             //result.RebuildNormals();
-
 
             DA.SetData(0, result);
             
