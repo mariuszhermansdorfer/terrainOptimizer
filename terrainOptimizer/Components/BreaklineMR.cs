@@ -19,7 +19,7 @@ namespace terrainOptimizer
         {
             pManager.AddMeshParameter("mesh", "mesh", "", GH_ParamAccess.item);
             pManager.AddCurveParameter("breakline", "breakline", "", GH_ParamAccess.item);
-            pManager.AddBooleanParameter("hole/boundary", "hole/boundary", "", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("type", "type", "", GH_ParamAccess.item);
         }
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
@@ -36,8 +36,8 @@ namespace terrainOptimizer
         {
             DA.GetData(0, ref _baseTerrain);
             DA.GetData(1, ref _breakline);
-            bool hole = false;
-            DA.GetData(2, ref hole);
+            int direction = 0;
+            DA.GetData(2, ref direction);
 
            // meshA = IntPtr.Zero;
 
@@ -75,7 +75,7 @@ namespace terrainOptimizer
             Rhino.RhinoApp.WriteLine($"Convert Polyline: {sw.ElapsedMilliseconds} ms");
             sw.Restart();
 
-            var p = NativeMeshMethods.CutMeshWithPolyline(meshA, polyline, polyline.Length, hole);
+            var p = NativeMeshMethods.CutMeshWithPolyline(meshA, polyline, polyline.Length, (NativeMeshMethods.CuttingDirection)direction);
 
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Cut Mesh: {sw.ElapsedMilliseconds} ms");
