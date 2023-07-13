@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
-using Rhino.Commands;
 using Rhino.Geometry;
 using terrainOptimizer.Helpers;
 
@@ -9,9 +8,7 @@ namespace terrainOptimizer.Components
 {
     public class Boolean : GH_Component
     {
-        /// <summary>
-        /// Initializes a new instance of the MyComponent1 class.
-        /// </summary>
+
         public Boolean()
           : base("bool", "bool",
               "Description",
@@ -51,7 +48,7 @@ namespace terrainOptimizer.Components
             var p = NativeMethods.CollideBaseWithCutter(pointer, cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3, type); 
 
             sw.Stop();
-            Rhino.RhinoApp.WriteLine($"Perform Boolean Operation: {sw.ElapsedMilliseconds} ms");
+            Rhino.RhinoApp.WriteLine($"Boolean IRMB: {sw.ElapsedMilliseconds} ms");
             sw.Restart();
 
             int[] faces = new int[p.FacesLength];
@@ -61,7 +58,7 @@ namespace terrainOptimizer.Components
             Marshal.Copy(p.Vertices, verts, 0, p.VerticesLength);
 
             sw.Stop();
-            Rhino.RhinoApp.WriteLine($"Copy Data Back: {sw.ElapsedMilliseconds} ms");
+            //Rhino.RhinoApp.WriteLine($"Copy Data Back: {sw.ElapsedMilliseconds} ms");
             sw.Restart();
 
             var result = new Mesh();

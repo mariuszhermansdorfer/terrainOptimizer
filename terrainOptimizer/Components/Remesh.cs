@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Graphs;
 using Rhino.Geometry;
 using terrainOptimizer.Helpers;
 
@@ -23,12 +24,15 @@ namespace terrainOptimizer.Components
             pManager.AddNumberParameter("target", "target", "", GH_ParamAccess.item);
             pManager.AddBooleanParameter("preserve", "preserve", "", GH_ParamAccess.item);
             pManager.AddIntegerParameter("iters", "iters", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("shift", "shift", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("sharpAngle", "sharpAngle", "", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddMeshParameter("mesh", "mesh", "", GH_ParamAccess.item);
-            pManager.AddMeshParameter("mesh1", "mesh1", "", GH_ParamAccess.item);
+            pManager.AddMeshParameter("GC", "GC", "", GH_ParamAccess.item);
+            pManager.AddMeshParameter("CinoLib", "CinoLib", "", GH_ParamAccess.item);
+            pManager.AddMeshParameter("MeshLib", "MeshLib", "", GH_ParamAccess.item);
         }
 
         protected override void SolveInstance(IGH_DataAccess DA)
@@ -41,38 +45,51 @@ namespace terrainOptimizer.Components
             double target = 0;
             bool preserve = false;
             int iterations = 0;
+            double shift = 0;
+            double sharpAngle = 0;
             DA.GetData(1, ref mesh);
             DA.GetData(2, ref target);
             DA.GetData(3, ref preserve);
             DA.GetData(4, ref iterations);
+            DA.GetData(5, ref shift);
+            DA.GetData(6, ref sharpAngle);
+
+
+            var faces = mesh.Faces.ToIntArray(true);
+            var vertices = mesh.Vertices.ToFloatArray();
 
             System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
             
-            var pointer = NativeMethods.Trimesh(mesh.Faces.ToIntArray(true), mesh.Faces.Count * 3, mesh.Vertices.ToFloatArray(), mesh.Vertices.Count * 3);
-            var p = NativeMethods.CinoRemesh(pointer, iterations, target, preserve);
+            // Cino Lib
+
+            var pointer = NativeMethods.Trimesh(faces, faces.Length, vertices, vertices.Length);
+            sw.Restart();
+            var p = NativeMethods.CinoRemesh(pointer, iterations + 1, target, preserve);
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Cino: {sw.ElapsedMilliseconds} ms");
 
 
-            int[] faces1 = new int[p.FacesLength];
-            Marshal.Copy(p.Faces, faces1, 0, p.FacesLength);
+            int[] facesCino = new int[p.FacesLength];
+            Marshal.Copy(p.Faces, facesCino, 0, p.FacesLength);
 
-            float[] verts1 = new float[p.VerticesLength];
-            Marshal.Copy(p.Vertices, verts1, 0, p.VerticesLength);
+            float[] vertsCino = new float[p.VerticesLength];
+            Marshal.Copy(p.Vertices, vertsCino, 0, p.VerticesLength);
 
-            var result1 = new Mesh();
+            var resultCino = new Mesh();
             for (int i = 0; i < p.FacesLength; i += 3)
-                result1.Faces.AddFace(faces1[i], faces1[i + 1], faces1[i + 2]);
+                resultCino.Faces.AddFace(facesCino[i], facesCino[i + 1], facesCino[i + 2]);
 
             for (int i = 0; i < p.VerticesLength; i += 3)
-                result1.Vertices.Add(verts1[i], verts1[i + 1], verts1[i + 2]);
+                resultCino.Vertices.Add(vertsCino[i], vertsCino[i + 1], vertsCino[i + 2]);
 
 
+            // Geometry Central
 
+            
+            var m = NativeMethods.CreateMeshFromFloatArray(faces, faces.Length);
+            var verts = NativeMethods.CreateVertexGeometry(m, vertices, vertices.Length);
             sw.Restart();
-            var m = NativeMethods.CreateMeshFromFloatArray(mesh.Faces.ToIntArray(true), mesh.Faces.Count * 3);
-            var verts = NativeMethods.CreateVertexGeometry(m, mesh.Vertices.ToFloatArray(), mesh.Vertices.Count * 3);
-            NativeMethods.GCRemesh(m, verts, target, iterations, 1);
+            NativeMethods.GCRemesh(m, verts, target, iterations + 1, 1);
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Geometry Central: {sw.ElapsedMilliseconds} ms");
             var f = NativeMethods.GCFacesToIntArray(m);
@@ -80,27 +97,49 @@ namespace terrainOptimizer.Components
             var fi = NativeMethods.GCFacesCount(m);
             var vi = NativeMethods.GCVerticesCount(m);
 
-            int[] faces = new int[fi];
-            Marshal.Copy(f, faces, 0, fi);
+            int[] facesGC = new int[fi];
+            Marshal.Copy(f, facesGC, 0, fi);
 
-            float[] vertices = new float[vi];
-            Marshal.Copy(v, vertices, 0, vi);
+            float[] verticesGC = new float[vi];
+            Marshal.Copy(v, verticesGC, 0, vi);
 
 
-            var result = new Mesh();
+            var resultGC = new Mesh();
             for (int i = 0; i < fi; i += 3)
-                result.Faces.AddFace(faces[i], faces[i + 1], faces[i + 2]);
+                resultGC.Faces.AddFace(facesGC[i], facesGC[i + 1], facesGC[i + 2]);
 
             for (int i = 0; i < vi; i += 3)
-                result.Vertices.Add(vertices[i], vertices[i + 1], vertices[i + 2]);
+                resultGC.Vertices.Add(verticesGC[i], verticesGC[i + 1], verticesGC[i + 2]);
+
+            // MRMesh
+            var meshMR = NativeMethods.CreateMesh(faces, faces.Length, vertices, vertices.Length);
+            sw.Restart();
+            var pMR = NativeMethods.RemeshMesh(meshMR, (float)target, (float)shift, iterations, (float)sharpAngle);
+            sw.Stop();
+            Rhino.RhinoApp.WriteLine($"MeshLib: {sw.ElapsedMilliseconds} ms");
+
+            int[] facesMR = new int[pMR.FacesLength];
+            Marshal.Copy(pMR.Faces, facesMR, 0, pMR.FacesLength);
+
+            float[] vertsMR = new float[pMR.VerticesLength];
+            Marshal.Copy(pMR.Vertices, vertsMR, 0, pMR.VerticesLength);
+
+
+            var resultMR = new Mesh();
+            for (int i = 0; i < pMR.FacesLength; i += 3)
+                resultMR.Faces.AddFace(facesMR[i], facesMR[i + 1], facesMR[i + 2]);
+
+            for (int i = 0; i < pMR.VerticesLength; i += 3)
+                resultMR.Vertices.Add(vertsMR[i], vertsMR[i + 1], vertsMR[i + 2]);
 
 
             // --------------------
 
-            
-            
-            DA.SetData(0, result);
-            DA.SetData(1, result1);
+
+
+            DA.SetData(0, resultGC);
+            DA.SetData(1, resultCino);
+            DA.SetData(2, resultMR);
         }
 
         protected override System.Drawing.Bitmap Icon

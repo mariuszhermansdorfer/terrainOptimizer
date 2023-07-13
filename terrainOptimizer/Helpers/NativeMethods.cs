@@ -88,22 +88,26 @@ namespace terrainOptimizer.Helpers
         public static extern IntPtr CreateBoolMesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
 
         [DllImport("mesh_booleans.dll")]
-        public static extern BoolResults CollideBaseWithCutter(IntPtr baseMesh, int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength, int operationType);
+        public static extern RawMeshArrays CollideBaseWithCutter(IntPtr baseMesh, int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength, int operationType);
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct BoolResults
+        public struct RawMeshArrays
         {
             public IntPtr Faces;
             public int FacesLength;
             public IntPtr Vertices;
             public int VerticesLength;
+            public IntPtr VertexValues;
+            public int VertexValuesLength;
+            public float Cut;
+            public float Fill;
         }
 
         [DllImport("mesh_booleans.dll")]
         public static extern IntPtr Trimesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
 
         [DllImport("mesh_booleans.dll")]
-        public static extern BoolResults CinoRemesh(IntPtr baseMesh, int iterations, double targetLength, bool preserve);
+        public static extern RawMeshArrays CinoRemesh(IntPtr baseMesh, int iterations, double targetLength, bool preserve);
 
 
         [DllImport("embree_raytracer.dll")]
@@ -142,6 +146,22 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("rhino_mesh_wrap.dll")]
         public static extern WrapResults TestWrap(float[] vertices, int verticesLength, int[] faces, int facesLength, double alpha, double offset);
+
+
+        [DllImport("MRMesh.dll")]
+        public static extern IntPtr CreateMesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
+
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays BooleanMeshes(IntPtr meshA, IntPtr meshb);
+
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays CutMeshWithPolyline(IntPtr meshA, float[] coordinates, int coordinatesLength, bool remove);
+
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays RemeshMesh(IntPtr mesh, float targetLength, float shift, int iterations, float sharpAngle);
+
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays Distance(IntPtr proposedMesh, IntPtr baseMesh, float resolution);
 
     }
 }
