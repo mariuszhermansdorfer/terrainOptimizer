@@ -2,9 +2,6 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/terrainOptimizer/.vs/terrainOptimizer/FileContentIndex/ffe8d88a-4bc5-4c3d-8308-3dcb88bff21d.vsidx
-/terrainOptimizer/.vs/terrainOptimizer/FileContentIndex/fd6c5454-171a-4727-be9f-139a2a35b826.vsidx
-/terrainOptimizer/.vs/terrainOptimizer/FileContentIndex/e202e8a8-b9e6-4e86-a9d0-94cafb3006ac.vsidx
-/terrainOptimizer/.vs/terrainOptimizer/FileContentIndex/4e4ac57e-098a-4ce6-9f87-bf7a6c4ffcee.vsidx
-/terrainOptimizer/.vs/terrainOptimizer/FileContentIndex/2f3c4b6f-57ea-4ecd-8c13-8f0a8e054b75.vsidx
-/terrainOptimizer/.vs/terrainOptimizer/FileContentIndex/e202e8a8-b9e6-4e86-a9d0-94cafb3006ac.vsidx
+/terrainOptimizer/.vs/
+/terrainOptimizer/obj/
+/terrainOptimizer/bin/
