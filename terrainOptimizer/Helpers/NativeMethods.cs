@@ -6,12 +6,6 @@ namespace terrainOptimizer.Helpers
     public class NativeMethods
     {
        
-        [DllImport("pmp.dll")]
-        public static extern void DeleteFacesArray(IntPtr facesArray);
-
-        [DllImport("pmp.dll")]
-        public static extern void DeleteVertexArray(IntPtr vertexArray);
-
         [DllImport("geometry-central.dll")]
         public static extern IntPtr CreateMeshFromFloatArray(int[] faces, int facesLength);
 
