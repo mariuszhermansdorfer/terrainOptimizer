@@ -7,11 +7,11 @@ using terrainOptimizer.Helpers;
 
 namespace terrainOptimizer.Components
 {
-    public class Clip : GH_Component
+    public class ClipperOffset : GH_Component
     {
 
-        public Clip()
-          : base("Clip", "Clip",
+        public ClipperOffset()
+          : base("ClipperOffset", "ClipperOffset",
               "Description",
               "PHD", "Subcategory")
         {
@@ -25,6 +25,8 @@ namespace terrainOptimizer.Components
             pManager.AddIntegerParameter("precision", "precision", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("epsilon", "epsilon", "", GH_ParamAccess.item);
             pManager.AddBooleanParameter("simplify", "simplify", "", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("joinType", "joinType", "", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("endType", "endType", "", GH_ParamAccess.item);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
@@ -40,12 +42,17 @@ namespace terrainOptimizer.Components
             int precision = 0;
             double epsilon = 0;
             bool simplify = false;
+            int joinType = 0;
+            int endType = 0;
             DA.GetData(0, ref crv);
             DA.GetData(1, ref delta);
             DA.GetData(2, ref miterLimit);
             DA.GetData(3, ref precision);
             DA.GetData(4, ref epsilon);
             DA.GetData(5, ref simplify);
+            DA.GetData(6, ref joinType);
+            DA.GetData(7, ref endType);
+
 
             Polyline poly;
 
@@ -69,10 +76,16 @@ namespace terrainOptimizer.Components
             for (int i = 0; i < poly.Count; i++)
                 offset[i] = 0.1 + (double)i / (double) poly.Count;
 
-            var offsetResult = NativePolylineMethods.VariableOffset3d(coordinates, coordinates.Length, offset, miterLimit, precision, simplify, epsilon);
+            
 
+            var path = ClipperApi.CreateClipperPath(coordinates, coordinates.Length, ClipperApi.Dim.ThreeD);
+            var offsetResult = ClipperApi.Offset(path, ClipperApi.Dim.ThreeD, delta, miterLimit, precision, simplify, epsilon, (ClipperApi.JoinType)joinType, (ClipperApi.EndType)endType);
+            //var offsetResult = ClipperApi.VariableOffset3d(path, offset, miterLimit, precision, simplify, epsilon, (ClipperApi.JoinType)joinType, (ClipperApi.EndType)endType);
             double[] verts = new double[offsetResult.VerticesLength];
             System.Runtime.InteropServices.Marshal.Copy(offsetResult.Vertices, verts, 0, offsetResult.VerticesLength);
+
+            // Important to clean up unmanaged memory manually
+            ClipperApi.DeleteClipperPath(path);
 
             Polyline outCurve = new Polyline();
             for (int i = 0;i < verts.Length; i+=3)

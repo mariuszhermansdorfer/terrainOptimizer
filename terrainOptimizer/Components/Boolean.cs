@@ -41,10 +41,10 @@ namespace terrainOptimizer.Components
             DA.GetData(2, ref cutter);
 
             if (meshA == IntPtr.Zero)
-                meshA = NativeMeshMethods.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+                meshA = MeshApi.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
                         
-            IntPtr meshB = NativeMeshMethods.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
-            var p = NativeMeshMethods.BooleanMeshes(meshA, meshB, (NativeMeshMethods.BooleanOperation)type);
+            IntPtr meshB = MeshApi.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
+            var p = MeshApi.BooleanMeshes(meshA, meshB, (MeshApi.BooleanOperation)type);
             
 
             int[] faces = new int[p.FacesLength];

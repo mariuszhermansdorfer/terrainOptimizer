@@ -51,9 +51,9 @@ namespace terrainOptimizer.Components
             DA.GetData(5, ref sharpAngle);
 
             if (meshMR == IntPtr.Zero)
-                meshMR = NativeMeshMethods.CreateMesh(mesh.Faces.ToIntArray(true), mesh.Faces.Count * 3, mesh.Vertices.ToFloatArray(), mesh.Vertices.Count * 3);
+                meshMR = MeshApi.CreateMesh(mesh.Faces.ToIntArray(true), mesh.Faces.Count * 3, mesh.Vertices.ToFloatArray(), mesh.Vertices.Count * 3);
             
-            var pMR = NativeMeshMethods.RemeshMesh(meshMR, (float)target, (float)shift, iterations, (float)sharpAngle);
+            var pMR = MeshApi.RemeshMesh(meshMR, (float)target, (float)shift, iterations, (float)sharpAngle);
 
 
             int[] facesMR = new int[pMR.FacesLength];

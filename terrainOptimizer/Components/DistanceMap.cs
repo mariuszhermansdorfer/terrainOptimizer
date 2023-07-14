@@ -50,10 +50,10 @@ namespace terrainOptimizer.Components
 
             System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
 
-            var meshProposed = NativeMeshMethods.CreateMesh(faces, faces.Length, vertices, vertices.Length);
-            var meshExisting = NativeMeshMethods.CreateMesh(faces1, faces1.Length, vertices1, vertices1.Length);
+            var meshProposed = MeshApi.CreateMesh(faces, faces.Length, vertices, vertices.Length);
+            var meshExisting = MeshApi.CreateMesh(faces1, faces1.Length, vertices1, vertices1.Length);
             sw.Restart();
-            var pMR = NativeMeshMethods.Distance(meshProposed, meshExisting, (float)resolution);
+            var pMR = MeshApi.Distance(meshProposed, meshExisting, (float)resolution);
             sw.Stop();
 
             int[] resultFaces = new int[pMR.FacesLength];

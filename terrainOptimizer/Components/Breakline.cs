@@ -39,7 +39,7 @@ namespace terrainOptimizer
             DA.GetData(2, ref direction);
 
             if (meshA == IntPtr.Zero)
-                meshA = NativeMeshMethods.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+                meshA = MeshApi.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
 
 
             Polyline insidePolyline;
@@ -61,7 +61,7 @@ namespace terrainOptimizer
                 polyline[j + 2] = (float)insidePolyline[i].Z;
             }
 
-            var mesh = NativeMeshMethods.CutMeshWithPolyline(meshA, polyline, polyline.Length, (NativeMeshMethods.CuttingOperation)direction);
+            var mesh = MeshApi.CutMeshWithPolyline(meshA, polyline, polyline.Length, (MeshApi.CuttingOperation)direction);
 
             int[] faces = new int[mesh.FacesLength];
             Marshal.Copy(mesh.Faces, faces, 0, mesh.FacesLength);

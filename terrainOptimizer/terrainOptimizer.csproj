@@ -92,10 +92,10 @@
     <Compile Include="Components\Boolean.cs" />
     <Compile Include="Components\Breakline.cs" />
     <Compile Include="Components\DistanceMap.cs" />
-    <Compile Include="Components\Clip.cs" />
+    <Compile Include="Components\ClipperOffset.cs" />
     <Compile Include="Components\Remesh.cs" />
-    <Compile Include="Helpers\NativeMeshMethods.cs" />
-    <Compile Include="Helpers\NativePolylineMethods.cs" />
+    <Compile Include="Helpers\MeshApi.cs" />
+    <Compile Include="Helpers\ClipperApi.cs" />
     <Compile Include="terrainOptimizerInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

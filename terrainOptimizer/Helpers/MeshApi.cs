@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace terrainOptimizer.Helpers
 {
-    public class NativeMeshMethods
+    public class MeshApi
     {
   
         [StructLayout(LayoutKind.Sequential)]
@@ -32,12 +32,7 @@ namespace terrainOptimizer.Helpers
             DifferenceAB
         }
 
-        public enum CuttingOperation
-        {
-            DeleteInside,
-            DeleteOutside,
-            None
-        }
+        public enum CuttingOperation { DeleteInside, DeleteOutside, None }
 
         [DllImport("MRMesh.dll")]
         public static extern IntPtr CreateMesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
