@@ -20,6 +20,7 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("ClipperApi.dll")]
         public static extern IntPtr CreateClipperPath(double[] coordinates, int numCoordinates, Dim dim);
+        
         [DllImport("ClipperApi.dll")]
         public static extern void DeleteClipperPath(IntPtr path);
 
