@@ -46,6 +46,9 @@ namespace terrainOptimizer.Components
             IntPtr meshB = MeshApi.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
             var p = MeshApi.BooleanMeshes(meshA, meshB, (MeshApi.BooleanOperation)type);
             
+            MeshApi.DeleteMesh(meshB);
+            //We should also delete meshA once it's no longer needed
+            //MeshApi.DeleteMesh(meshA);
 
             int[] faces = new int[p.FacesLength];
             Marshal.Copy(p.Faces, faces, 0, p.FacesLength);
