@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Grasshopper.Kernel;
 using terrainOptimizer.Helpers;
@@ -34,28 +35,51 @@ namespace terrainOptimizer
 
             //if (!run)
             //    return;
-            Task.Run(() =>
+
+            MeshApi.RawMeshArrays pMR = default;
+
+            Thread thread = new Thread(() =>
             {
                 IntPtr meshPtr = MeshApi.ImportMesh(path, ReportProgress);
-                var pMR = MeshApi.RetrieveMesh(meshPtr);
-
-                int[] facesMR = new int[pMR.FacesLength];
-                Marshal.Copy(pMR.Faces, facesMR, 0, pMR.FacesLength);
-
-                float[] vertsMR = new float[pMR.VerticesLength];
-                Marshal.Copy(pMR.Vertices, vertsMR, 0, pMR.VerticesLength);
-
-
-                var resultMR = new Rhino.Geometry.Mesh();
-                for (int i = 0; i < pMR.FacesLength; i += 3)
-                    resultMR.Faces.AddFace(facesMR[i], facesMR[i + 1], facesMR[i + 2]);
-
-                for (int i = 0; i < pMR.VerticesLength; i += 3)
-                    resultMR.Vertices.Add(vertsMR[i], vertsMR[i + 1], vertsMR[i + 2]);
-
-                DA.SetData(0, resultMR);
-                //    // Handle meshPtr...
+                pMR = MeshApi.RetrieveMesh(meshPtr);
             });
+
+            try
+            {
+                thread.Start();
+
+                if (!thread.Join(TimeSpan.FromSeconds(10)))
+                {
+                    thread.Abort();
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "AlphaWrap timed out and was aborted.");
+                    return;
+                }
+            }
+            catch (ThreadAbortException ex)
+            {
+                Thread.ResetAbort();
+            }
+
+
+
+
+            int[] facesMR = new int[pMR.FacesLength];
+            Marshal.Copy(pMR.Faces, facesMR, 0, pMR.FacesLength);
+
+            float[] vertsMR = new float[pMR.VerticesLength];
+            Marshal.Copy(pMR.Vertices, vertsMR, 0, pMR.VerticesLength);
+
+
+            var resultMR = new Rhino.Geometry.Mesh();
+            for (int i = 0; i < pMR.FacesLength; i += 3)
+                resultMR.Faces.AddFace(facesMR[i], facesMR[i + 1], facesMR[i + 2]);
+
+            for (int i = 0; i < pMR.VerticesLength; i += 3)
+                resultMR.Vertices.Add(vertsMR[i], vertsMR[i + 1], vertsMR[i + 2]);
+
+            DA.SetData(0, resultMR);
+            //    // Handle meshPtr...
+
 
 
 
