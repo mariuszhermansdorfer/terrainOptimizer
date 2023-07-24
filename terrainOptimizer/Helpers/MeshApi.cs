@@ -46,7 +46,16 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("MRMesh.dll")]
         public static extern IntPtr CreateMesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
-        
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate bool RhinoProgressCallback(float progress);
+
+        [DllImport("MRMesh.dll")]
+        public static extern IntPtr ImportMesh(string path, RhinoProgressCallback progressCallback);
+
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays RetrieveMesh(IntPtr mesh);
+
         [DllImport("MRMesh.dll")]
         public static extern void DeleteMesh(IntPtr mesh);
 

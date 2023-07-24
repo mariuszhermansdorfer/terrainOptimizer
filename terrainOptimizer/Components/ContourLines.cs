@@ -9,9 +9,9 @@ using terrainOptimizer.Helpers;
 
 namespace terrainOptimizer
 {
-    public class ContourLines : GH_Component
+    public class IO : GH_Component
     {
-        public ContourLines()
+        public IO()
           : base("ContourLines", "ContourLines",
               "Description",
               "PHD", "Subcategory")
