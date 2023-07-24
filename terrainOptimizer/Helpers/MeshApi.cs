@@ -19,6 +19,16 @@ namespace terrainOptimizer.Helpers
             public float Fill;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RawPolylineArrays
+        {
+            public IntPtr ContourVertices;
+            public IntPtr ContourVerticesLengths;
+            public int ContourCount;
+            public IntPtr LabelVertices;
+            public IntPtr LabelNormals;
+            public int LabelCount;
+        }
 
         public enum BooleanOperation
         {
@@ -52,5 +62,7 @@ namespace terrainOptimizer.Helpers
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays Distance(IntPtr proposedMesh, IntPtr baseMesh, float resolution);
 
+        [DllImport("MRMesh.dll")]
+        public static extern RawPolylineArrays CreateContours(IntPtr mesh, float interval, bool showLabels, float spacing);
     }
 }

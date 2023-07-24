@@ -91,8 +91,8 @@ namespace terrainOptimizer.Components
             for (int i = 0;i < verts.Length; i+=3)
                 outCurve.Add(new Point3d(verts[i], verts[i + 1], verts[i + 2]));
 
-            if (!outCurve.IsClosed)
-                outCurve.Add(outCurve[0]);
+            //if (!outCurve.IsClosed)
+            //    outCurve.Add(outCurve[0]);
 
             DA.SetData(0, outCurve);
         }
