@@ -94,8 +94,10 @@
     <Compile Include="Components\ContourLines.cs" />
     <Compile Include="Components\DistanceMap.cs" />
     <Compile Include="Components\ClipperOffset.cs" />
+    <Compile Include="Components\FlowLines.cs" />
     <Compile Include="Components\import.cs" />
     <Compile Include="Components\Remesh.cs" />
+    <Compile Include="Components\Sculpt.cs" />
     <Compile Include="Helpers\MeshApi.cs" />
     <Compile Include="Helpers\ClipperApi.cs" />
     <Compile Include="terrainOptimizerInfo.cs" />

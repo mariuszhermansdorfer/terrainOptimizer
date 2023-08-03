@@ -5,7 +5,7 @@ namespace terrainOptimizer.Helpers
 {
     public class MeshApi
     {
-  
+
         [StructLayout(LayoutKind.Sequential)]
         public struct RawMeshArrays
         {
@@ -51,7 +51,7 @@ namespace terrainOptimizer.Helpers
         public delegate bool RhinoProgressCallback(float progress);
 
         [DllImport("MRMesh.dll")]
-        public static extern IntPtr ImportMesh(string path, RhinoProgressCallback progressCallback);
+        public static extern IntPtr ImportMesh(string path, float edgeLength, RhinoProgressCallback progressCallback);
 
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays RetrieveMesh(IntPtr mesh);
@@ -73,5 +73,13 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("MRMesh.dll")]
         public static extern RawPolylineArrays CreateContours(IntPtr mesh, float interval, bool showLabels, float spacing);
+
+        [DllImport("MRMesh.dll")]
+        public static extern void AnalyzeFlow(IntPtr mesh, float resolution);
+
+
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays Sculpt(IntPtr mesh, float[] coordinates, float radius);
+
     }
 }

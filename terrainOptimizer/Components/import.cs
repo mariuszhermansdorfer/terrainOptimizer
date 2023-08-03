@@ -18,7 +18,7 @@ namespace terrainOptimizer
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("path", "path", "", GH_ParamAccess.item);
-            pManager.AddBooleanParameter("run", "run", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("edgeLength", "edgeLength", "", GH_ParamAccess.item);
         }
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
@@ -28,40 +28,19 @@ namespace terrainOptimizer
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             string path = "";
-            bool run = false;
+            double edgeLength = 0;
 
             DA.GetData(0, ref path);
-            DA.GetData(1, ref run);
-
-            //if (!run)
-            //    return;
-
-            MeshApi.RawMeshArrays pMR = default;
-
-            Thread thread = new Thread(() =>
-            {
-                IntPtr meshPtr = MeshApi.ImportMesh(path, ReportProgress);
-                pMR = MeshApi.RetrieveMesh(meshPtr);
-            });
-
-            try
-            {
-                thread.Start();
-
-                if (!thread.Join(TimeSpan.FromSeconds(10)))
-                {
-                    thread.Abort();
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "AlphaWrap timed out and was aborted.");
-                    return;
-                }
-            }
-            catch (ThreadAbortException ex)
-            {
-                Thread.ResetAbort();
-            }
+            DA.GetData(1, ref edgeLength);
 
 
+            Rhino.UI.StatusBar.ShowProgressMeter(0, 100, "Import terrain data", true, true);
 
+
+            IntPtr meshPtr = MeshApi.ImportMesh(path, (float)edgeLength, ReportProgress);
+            var pMR = MeshApi.RetrieveMesh(meshPtr);
+
+            Rhino.UI.StatusBar.HideProgressMeter();
 
             int[] facesMR = new int[pMR.FacesLength];
             Marshal.Copy(pMR.Faces, facesMR, 0, pMR.FacesLength);
@@ -77,6 +56,8 @@ namespace terrainOptimizer
             for (int i = 0; i < pMR.VerticesLength; i += 3)
                 resultMR.Vertices.Add(vertsMR[i], vertsMR[i + 1], vertsMR[i + 2]);
 
+            MeshApi.DeleteMesh(meshPtr);
+
             DA.SetData(0, resultMR);
             //    // Handle meshPtr...
 
@@ -88,7 +69,7 @@ namespace terrainOptimizer
 
         static bool ReportProgress(float progress)
         {
-            Rhino.RhinoApp.WriteLine("Progress: " + progress * 100 + "%");
+            Rhino.UI.StatusBar.UpdateProgressMeter((int)(progress * 100), true);
             // Return true to continue, or false to cancel.
             return true;
         }
