@@ -77,9 +77,11 @@ namespace terrainOptimizer.Helpers
         [DllImport("MRMesh.dll")]
         public static extern void AnalyzeFlow(IntPtr mesh, float resolution);
 
-
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays Sculpt(IntPtr mesh, float[] coordinates, float radius);
+
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays SoapFilm(float[] coordinates, int coordinatesLength, float edgeLength);
 
     }
 }
