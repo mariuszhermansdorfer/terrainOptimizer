@@ -1,5 +1,4 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
-/.vs/terrainOptimizer/v17
+﻿/.vs
+/.vs/terrainOptimizer/.vs
+/.vs/terrainOptimizer/bin
+/.vs/terrainOptimizer/obj
