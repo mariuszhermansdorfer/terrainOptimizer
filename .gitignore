@@ -1,4 +1,4 @@
-﻿/.vs
-/.vs/terrainOptimizer/.vs
-/.vs/terrainOptimizer/bin
-/.vs/terrainOptimizer/obj
+/terrainOptimizer/.vs/*
+/terrainOptimizer/obj/*
+/terrainOptimizer/bin/*
+/.vs
