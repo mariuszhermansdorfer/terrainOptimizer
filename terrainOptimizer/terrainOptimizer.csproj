@@ -96,6 +96,7 @@
     <Compile Include="Components\ClipperOffset.cs" />
     <Compile Include="Components\FlowLines.cs" />
     <Compile Include="Components\import.cs" />
+    <Compile Include="Components\MixMeshes.cs" />
     <Compile Include="Components\Remesh.cs" />
     <Compile Include="Components\Sculpt.cs" />
     <Compile Include="Components\SoapFilm.cs" />

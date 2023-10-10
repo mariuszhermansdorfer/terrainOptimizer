@@ -63,6 +63,9 @@ namespace terrainOptimizer.Helpers
         public static extern RawMeshArrays BooleanMeshes(IntPtr meshA, IntPtr meshb, BooleanOperation operation);
 
         [DllImport("MRMesh.dll")]
+        public static extern IntPtr MixMeshes(IntPtr meshA, IntPtr meshb, float fillAngle, float cutAngle, float anglePrecision);
+
+        [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays CutMeshWithPolyline(IntPtr meshA, float[] coordinates, int coordinatesLength, CuttingOperation direction);
 
         [DllImport("MRMesh.dll")]
@@ -70,6 +73,8 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays Distance(IntPtr proposedMesh, IntPtr baseMesh, float resolution);
+        [DllImport("MRMesh.dll")]
+        public static extern RawMeshArrays GridRemesh(IntPtr proposedMesh, float resolution);
 
         [DllImport("MRMesh.dll")]
         public static extern RawPolylineArrays CreateContours(IntPtr mesh, float interval, bool showLabels, float spacing);
