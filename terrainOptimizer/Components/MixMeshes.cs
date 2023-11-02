@@ -32,7 +32,7 @@ namespace terrainOptimizer.Components
         {
             pManager.AddMeshParameter("result", "result", "", GH_ParamAccess.item);
         }
-        IntPtr meshA = IntPtr.Zero;
+        //IntPtr meshA = IntPtr.Zero;
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             Mesh baseMesh = new Mesh();
@@ -50,37 +50,76 @@ namespace terrainOptimizer.Components
             DA.GetData(4, ref anglePrecision);
 
             //if (meshA == IntPtr.Zero)
-            var  meshA = MeshApi.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+            //var  meshA = MeshApi.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+            var meshA = MeshApi.CreateMRMesh(baseMesh);
+            var meshB = MeshApi.CreateMRMesh(cutter);
 
-            IntPtr meshB = MeshApi.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
+
+            //IntPtr meshB = MeshApi.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
             var sw = Stopwatch.StartNew();
             var m = MeshApi.MixMeshes(meshA, meshB, (float)fillAngle, (float)cutAngle, (float)anglePrecision);
             sw.Stop();
             RhinoApp.WriteLine($"Mix meshes {sw.ElapsedMilliseconds} ms");
-            var p = MeshApi.RetrieveMesh(m);
+            //var p = MeshApi.RetrieveMesh(m);
 
             //MeshApi.DeleteMesh(meshB);
             ////We should also delete meshA once it's no longer needed
-            MeshApi.DeleteMesh(meshA);
-            MeshApi.DeleteMesh(meshB);
+            //MeshApi.DeleteMesh(meshA);
+            //MeshApi.DeleteMesh(meshB);
 
-            int[] faces = new int[p.FacesLength];
-            Marshal.Copy(p.Faces, faces, 0, p.FacesLength);
+            //int[] faces = new int[p.FacesLength];
+            //Marshal.Copy(p.Faces, faces, 0, p.FacesLength);
 
-            float[] verts = new float[p.VerticesLength];
-            Marshal.Copy(p.Vertices, verts, 0, p.VerticesLength);
+            //float[] verts = new float[p.VerticesLength];
+            //Marshal.Copy(p.Vertices, verts, 0, p.VerticesLength);
 
-            var result = new Mesh();
-            for (int i = 0; i < p.FacesLength; i += 3)
-                result.Faces.AddFace(faces[i], faces[i + 1], faces[i + 2]);
+            //var result = new Mesh();
+            //for (int i = 0; i < p.FacesLength; i += 3)
+            //    result.Faces.AddFace(faces[i], faces[i + 1], faces[i + 2]);
 
-            for (int i = 0; i < p.VerticesLength; i += 3)
-                result.Vertices.Add(verts[i], verts[i + 1], verts[i + 2]);
-            result.RebuildNormals();
+            //for (int i = 0; i < p.VerticesLength; i += 3)
+            //    result.Vertices.Add(verts[i], verts[i + 1], verts[i + 2]);
 
-            MeshApi.DeleteMesh(m);
+            //result.Faces.CullDegenerateFaces();
+            //result.RebuildNormals();
 
-            DA.SetData(0, result);
+            //MeshApi.DeleteMesh(m);
+
+            Mesh newMesh = new Mesh();
+            newMesh = new Mesh();
+            newMesh.Vertices.Count = m.VerticesLength;
+            newMesh.Faces.Count = m.FacesLength;
+
+            if (m.FacesLength > 0)
+            {
+                unsafe
+                {
+                    using (var meshAccess = newMesh.GetUnsafeLock(true))
+                    {
+                        Point3f* startOfVertexArray = meshAccess.VertexPoint3fArray(out int vertexArrayLength);
+                        MeshFace* startOfFacesArray = meshAccess.FacesArray(out int facesArrayLength);
+                        int* sourcePtr = (int*)m.Faces;
+                        int* destPtr = (int*)startOfFacesArray;
+
+                        Buffer.MemoryCopy((float*)m.Vertices, startOfVertexArray, vertexArrayLength * sizeof(Point3f), m.VerticesLength * sizeof(float) * 3);
+
+                        for (int i = 0; i < m.FacesLength; i++)
+                        {
+                            *destPtr++ = *sourcePtr++;
+                            *destPtr++ = *sourcePtr++;
+                            *destPtr++ = *sourcePtr; // MeshFace.C & D are the same for a triangle face
+                            *destPtr++ = *sourcePtr++;
+                        }
+
+                        newMesh.ReleaseUnsafeLock(meshAccess);
+                    }
+                }
+            }
+            // MeshApi.DeleteMesh(ptr);
+
+            //Rhino.RhinoApp.WriteLine(newMesh.Faces.CullDegenerateFaces().ToString());
+
+            DA.SetData(0, newMesh);
 
         }
 

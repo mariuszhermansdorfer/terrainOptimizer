@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rhino.Geometry;
+using System;
 using System.Runtime.InteropServices;
 
 namespace terrainOptimizer.Helpers
@@ -30,6 +31,22 @@ namespace terrainOptimizer.Helpers
             public int LabelCount;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RawMeshPointers
+        {
+            public IntPtr Faces;
+            public int FacesLength;
+            public IntPtr Vertices;
+            public int VerticesLength;
+        };
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RawPolylinePointers
+        {
+            public IntPtr Vertices;
+            public int VerticesLength;
+        };
+
         public enum BooleanOperation
         {
             InsideA,
@@ -47,6 +64,9 @@ namespace terrainOptimizer.Helpers
         [DllImport("MRMesh.dll")]
         public static extern IntPtr CreateMesh(int[] triangles, int trianglesLength, float[] coordinates, int coordinatesLength);
 
+        [DllImport("MRMesh.dll")]
+        public unsafe static extern IntPtr CreateMeshFromPointers(Point3f* verticesPtr, int verticesLength, int* trianglesPtr, int trianglesLength);
+
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate bool RhinoProgressCallback(float progress);
 
@@ -63,7 +83,7 @@ namespace terrainOptimizer.Helpers
         public static extern RawMeshArrays BooleanMeshes(IntPtr meshA, IntPtr meshb, BooleanOperation operation);
 
         [DllImport("MRMesh.dll")]
-        public static extern IntPtr MixMeshes(IntPtr meshA, IntPtr meshb, float fillAngle, float cutAngle, float anglePrecision);
+        public static extern RawMeshPointers MixMeshes(IntPtr meshA, IntPtr meshb, float fillAngle, float cutAngle, float anglePrecision);
 
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays CutMeshWithPolyline(IntPtr meshA, float[] coordinates, int coordinatesLength, CuttingOperation direction);
@@ -87,6 +107,31 @@ namespace terrainOptimizer.Helpers
 
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays SoapFilm(float[] coordinates, int coordinatesLength, float edgeLength);
+
+        //[DllImport("MRMesh.dll")]
+        //public unsafe static extern RawPolylinePointers Offset(Point3d* pointArray, int length, float offset);
+        [DllImport("MRMesh.dll")]
+        public unsafe static extern RawMeshArrays Offset(float[] coordinates, int coordinatesLength, float offset);
+
+        public unsafe static IntPtr CreateMRMesh(Mesh mesh)
+        {
+            IntPtr ptr;
+            unsafe
+            {
+                using (var meshAccess = mesh.GetUnsafeLock(true))
+                {
+                    Point3f* startOfVertexArray = meshAccess.VertexPoint3fArray(out int vertexArrayLength);
+                    int[] faces = mesh.Faces.ToIntArray(true);
+                    fixed (int* facesPointer = faces)
+                    {
+                        ptr = CreateMeshFromPointers(startOfVertexArray, mesh.Vertices.Count, facesPointer, faces.Length);
+                    }
+
+                    mesh.ReleaseUnsafeLock(meshAccess);
+                }
+            }
+            return ptr;
+        }
 
     }
 }
