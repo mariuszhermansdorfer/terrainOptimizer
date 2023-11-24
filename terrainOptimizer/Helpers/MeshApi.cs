@@ -100,6 +100,9 @@ namespace terrainOptimizer.Helpers
         public static extern RawPolylineArrays CreateContours(IntPtr mesh, float interval, bool showLabels, float spacing);
 
         [DllImport("MRMesh.dll")]
+        public static extern RawPolylineArrays CreateContoursPointers(IntPtr mesh, float interval, bool showLabels, float spacing);
+
+        [DllImport("MRMesh.dll")]
         public static extern void AnalyzeFlow(IntPtr mesh, float resolution);
 
         [DllImport("MRMesh.dll")]
@@ -108,10 +111,8 @@ namespace terrainOptimizer.Helpers
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays SoapFilm(float[] coordinates, int coordinatesLength, float edgeLength);
 
-        //[DllImport("MRMesh.dll")]
-        //public unsafe static extern RawPolylinePointers Offset(Point3d* pointArray, int length, float offset);
         [DllImport("MRMesh.dll")]
-        public unsafe static extern RawMeshArrays Offset(float[] coordinates, int coordinatesLength, float offset);
+        public unsafe static extern RawMeshArrays Offset(float[] coordinates, int polylineCount, int[] polylinesLength, float offset, float epsilon, int iterations, float smoothingFactor);
 
         public unsafe static IntPtr CreateMRMesh(Mesh mesh)
         {

@@ -22,8 +22,9 @@ namespace terrainOptimizer
         }
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddCurveParameter("curve", "curve", "", GH_ParamAccess.item);
+            pManager.AddCurveParameter("curve", "curve", "", GH_ParamAccess.list);
             pManager.AddNumberParameter("offset", "offset", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("epsilon", "epsilon", "", GH_ParamAccess.item);
         }
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
@@ -34,68 +35,52 @@ namespace terrainOptimizer
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            Curve breakline = null;
+            List<Curve> breaklines = new List<Curve>();
             double offset = 0;
-            DA.GetData(0, ref breakline);
+            double epsilon = 0;
+            DA.GetDataList(0, breaklines);
             DA.GetData(1, ref offset);
+            DA.GetData(2, ref epsilon);
 
+            List<Polyline> insidePolylines = new List<Polyline>();
 
-            Polyline insidePolyline;
-
-            if (breakline.IsPolyline())
-                breakline.TryGetPolyline(out insidePolyline);
-            else
-                insidePolyline = breakline.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
-
-            //if (breakline.IsClosed)
-            //    insidePolyline.Add(insidePolyline[0]);
-
-            //insidePolyline.RemoveAt(insidePolyline.Count - 1);
-
-            //double[] coordinates = new double[insidePolyline.Count * 3];
-
-            //for (int i = 0, j = 0; i < insidePolyline.Count; i++, j += 3)
-            //{
-            //    coordinates[j] = insidePolyline[i].X;
-            //    coordinates[j + 1] = insidePolyline[i].Y;
-            //    coordinates[j + 2] = insidePolyline[i].Z;
-            //}
-
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            //var path = ClipperApi.CreateClipperPath(coordinates, coordinates.Length, ClipperApi.Dim.ThreeD);
-
-            //var simple = ClipperApi.Simplify(path, Dim.ThreeD, 0.03);
-            //double[] verts1 = new double[simple.VerticesLength];
-            //Marshal.Copy(simple.Vertices, verts1, 0, simple.VerticesLength);
-            //sw.Stop();
-            //Rhino.RhinoApp.WriteLine($"Simplify {sw.ElapsedMilliseconds} ms");
-            //sw.Restart();
-            //float[] polyline1 = new float[simple.VerticesLength / 3 * 2 + 2];
-
-            //for (int i = 0, j = 0; i < simple.VerticesLength; i +=3, j += 2)
-            //{
-            //    polyline1[j] = (float)verts1[i];
-            //    polyline1[j + 1] = (float)verts1[i + 1];
-            //}
-
-            //polyline1[polyline1.Length - 2] = polyline1[0];
-            //polyline1[polyline1.Length - 1] = polyline1[1];
-
-            float[] polyline = new float[insidePolyline.Count * 2];
-            for (int i = 0, j = 0; i < insidePolyline.Count; i++, j += 2)
+            foreach (var breakline in breaklines)
             {
-                polyline[j] = (float)insidePolyline[i].X;
-                polyline[j + 1] = (float)insidePolyline[i].Y;
-               // polyline[j + 2] = (float)insidePolyline[i].Z;
+                Polyline insidePolyline;
+
+                if (breakline.IsPolyline())
+                    breakline.TryGetPolyline(out insidePolyline);
+                else
+                    insidePolyline = breakline.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
+                
+                insidePolylines.Add(insidePolyline);
             }
 
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+
+            List<float> coordinates = new List<float>();
+            foreach (var poly in insidePolylines)
+            {
+                foreach (var point in poly)
+                {
+                    coordinates.Add((float)point.X);
+                    coordinates.Add((float)point.Y);
+                    coordinates.Add((float)point.Z);
+                }
+            }
+
+            int[] polylinesLength = new int[insidePolylines.Count];
+            for (int i = 0; i < insidePolylines.Count; i++)
+                polylinesLength[i] = insidePolylines[i].Count;
             
-            var test = MeshApi.Offset(polyline, polyline.Length, (float)offset);
+            var test = MeshApi.Offset(coordinates.ToArray(), insidePolylines.Count, polylinesLength, (float)offset, (float)epsilon, 10, 0.1f);
             sw.Stop();
             Rhino.RhinoApp.WriteLine($"Offset {sw.ElapsedMilliseconds} ms");
 
-            float[] verts = new float[test.VerticesLength * 2];
-            Marshal.Copy(test.Vertices, verts, 0, test.VerticesLength * 2);
+            float[] verts = new float[test.VerticesLength * 3];
+            Marshal.Copy(test.Vertices, verts, 0, test.VerticesLength * 3);
 
             int[] resultingPolylines = new int[test.FacesLength];
             Marshal.Copy(test.Faces, resultingPolylines, 0, test.FacesLength);
@@ -106,12 +91,12 @@ namespace terrainOptimizer
             for (int j = 0; j < test.FacesLength; j++)
             {
                 Polyline pts = new Polyline();
-                for (int i = 0; i < resultingPolylines[j] * 2; i += 2)
+                for (int i = 0; i < resultingPolylines[j] * 3; i += 3)
                 {
-                    pts.Add(new Point3d(verts[dataOffset + i], verts[dataOffset + i + 1], 0));
+                    pts.Add(new Point3d(verts[dataOffset + i], verts[dataOffset + i + 1], verts[dataOffset + i + 2]));
                 }
                 polylines.Add(pts);
-                dataOffset += resultingPolylines[j] * 2;
+                dataOffset += resultingPolylines[j] * 3;
             }
 
             

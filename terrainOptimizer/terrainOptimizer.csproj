@@ -73,10 +73,14 @@
     <Reference Include="RhinoCommon, Version=7.10.21256.17000, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>packages\RhinoCommon.7.10.21256.17001\lib\net48\RhinoCommon.dll</HintPath>
     </Reference>
+    <Reference Include="RoboSharp, Version=1.3.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\RoboSharp.1.3.5\lib\net452\RoboSharp.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Management" />
     <Reference Include="System.Runtime, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
       <Private>True</Private>
@@ -103,6 +107,7 @@
     <Compile Include="Components\MixMeshes.cs" />
     <Compile Include="Components\Offset.cs" />
     <Compile Include="Components\Remesh.cs" />
+    <Compile Include="Components\Robo.cs" />
     <Compile Include="Components\Sculpt.cs" />
     <Compile Include="Components\SoapFilm.cs" />
     <Compile Include="Helpers\MeshApi.cs" />

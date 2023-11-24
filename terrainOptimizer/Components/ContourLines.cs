@@ -46,7 +46,8 @@ namespace terrainOptimizer
             DA.GetData(3, ref showLabels);
 
             if (meshA == IntPtr.Zero)
-                meshA = MeshApi.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+                meshA = MeshApi.CreateMRMesh(baseMesh);
+
             var sw = Stopwatch.StartNew();
             var contours = MeshApi.CreateContours(meshA, (float)interval, showLabels, (float)spacing);
             sw.Stop();
@@ -62,8 +63,9 @@ namespace terrainOptimizer
                 float[] verts = new float[length];
                 Marshal.Copy(contours.ContourVertices + offset * sizeof(float), verts, 0, length);
                 offset += length;
+
                 
-                Polyline polyline = new Polyline();
+                Polyline polyline = new Polyline(length / 3);
                 for (int i = 0; i < length; i += 3)
                 {
                     polyline.Add(new Point3f(verts[i], verts[i + 1], verts[i + 2]));

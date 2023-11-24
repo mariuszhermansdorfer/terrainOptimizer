@@ -46,7 +46,7 @@ namespace terrainOptimizer.Components
             DA.GetData(1, ref radius);
 
             if (mesh == IntPtr.Zero)
-                mesh = MeshApi.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
+                mesh = MeshApi.CreateMRMesh(baseMesh);
 
             if (a == null || !a.Enabled)
             {
@@ -111,7 +111,7 @@ namespace terrainOptimizer.Components
                 }
 
                 sw.Restart();
-                Rhino.RhinoDoc.ActiveDoc.Views.ActiveView.Redraw();
+                Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
                 sw.Stop();
 
