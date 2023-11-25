@@ -109,7 +109,7 @@ namespace terrainOptimizer.Helpers
         public static extern RawMeshArrays Sculpt(IntPtr mesh, float[] coordinates, float radius);
 
         [DllImport("MRMesh.dll")]
-        public static extern RawMeshArrays SoapFilm(float[] coordinates, int coordinatesLength, float edgeLength);
+        public static extern RawMeshArrays SoapFilm(float[] coordinates, int coordinatesLength, float edgeLength, int iterations, float pressure);
 
         [DllImport("MRMesh.dll")]
         public unsafe static extern RawMeshArrays Offset(float[] coordinates, int polylineCount, int[] polylinesLength, float offset, float epsilon, int iterations, float smoothingFactor);

@@ -16,8 +16,10 @@ namespace terrainOptimizer
         }
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddCurveParameter("breakline", "breakline", "", GH_ParamAccess.item);
+            pManager.AddCurveParameter("curve", "curve", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("edgeLength", "edgeLength", "", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("iterations", "iterations", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("pressure", "pressure", "", GH_ParamAccess.item);
         }
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
@@ -28,8 +30,12 @@ namespace terrainOptimizer
         {
             Curve breakline = null;
             double edgeLength = 0;
+            int iterations = 0;
+            double pressure = 0;
             DA.GetData(0, ref breakline);
             DA.GetData(1, ref edgeLength);
+            DA.GetData(2, ref iterations);
+            DA.GetData(3, ref pressure);
 
             Polyline baseCurve;
 
@@ -50,7 +56,7 @@ namespace terrainOptimizer
                 polyline[j + 2] = (float)baseCurve[i].Z;
             }
 
-            var mesh = MeshApi.SoapFilm(polyline, polyline.Length, (float)edgeLength);
+            var mesh = MeshApi.SoapFilm(polyline, polyline.Length, (float)edgeLength, iterations, (float)pressure);
 
             int[] faces = new int[mesh.FacesLength];
             Marshal.Copy(mesh.Faces, faces, 0, mesh.FacesLength);
