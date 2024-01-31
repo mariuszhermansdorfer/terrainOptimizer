@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Drawing;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Graphs;
 using Rhino.Geometry;
 using terrainOptimizer.Helpers;
 
@@ -23,12 +21,15 @@ namespace terrainOptimizer.Components
             pManager.AddMeshParameter("existing", "existing", "", GH_ParamAccess.item);
             pManager.AddMeshParameter("proposed", "proposed", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("resolution", "resolution", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("maxDistance", "maxDistance", "", GH_ParamAccess.item, 5);
         }
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddMeshParameter("distance", "distance", "", GH_ParamAccess.item);
+            pManager.AddMeshParameter("difference", "difference", "", GH_ParamAccess.item);
         }
+
+        private Mesh _result;
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
@@ -36,10 +37,12 @@ namespace terrainOptimizer.Components
             Mesh existing = new Mesh();
             Mesh proposed = new Mesh();
             double resolution = 0;
+            double maxDistance = 0;
 
             DA.GetData(0, ref existing);
             DA.GetData(1, ref proposed);
             DA.GetData(2, ref resolution);
+            DA.GetData(3, ref maxDistance);
 
 
             var faces = proposed.Faces.ToIntArray(true);
@@ -66,39 +69,49 @@ namespace terrainOptimizer.Components
             Marshal.Copy(pMR.VertexValues, resultValues, 0, pMR.VertexValuesLength);
 
 
-            var result = new Mesh();
+            _result = new Mesh();
             for (int i = 0; i < pMR.FacesLength; i += 3)
-                result.Faces.AddFace(resultFaces[i], resultFaces[i + 1], resultFaces[i + 2]);
+                _result.Faces.AddFace(resultFaces[i], resultFaces[i + 1], resultFaces[i + 2]);
 
             for (int i = 0; i < pMR.VerticesLength; i += 3)
-                result.Vertices.Add(resultVertices[i], resultVertices[i + 1], resultVertices[i + 2]);
+                _result.Vertices.Add(resultVertices[i], resultVertices[i + 1], resultVertices[i + 2]);
 
             for (int i = 0; i < pMR.VertexValuesLength; i++)
-                result.VertexColors.Add(FloatToColor(resultValues[i]));
+                _result.VertexColors.Add(FloatToColor(resultValues[i], (float)maxDistance));
 
-            Rhino.RhinoApp.WriteLine($"Cut: {pMR.Cut} m3 | Fill: {pMR.Fill} m3 | Time: {sw.ElapsedMilliseconds} ms");
+            Rhino.RhinoApp.WriteLine($"Cut: {Math.Round(pMR.Cut, 2)} m3 | Fill: {Math.Round(pMR.Fill, 2)} m3 | Balance: {Math.Round(pMR.Cut + pMR.Fill, 2)} m3");
+            _result.UnifyNormals();
+            _result.Translate(new Vector3d(0, 0, 0.1));
 
-            DA.SetData(0, result);
+           // DA.SetData(0, _result);
         }
 
-        static Color FloatToColor(float value)
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            if (_result == null)
+                return;
+
+            args.Display.DrawMeshFalseColors(_result);
+        }
+
+        static Color FloatToColor(float value, float max)
         {
             Color red = Color.Red;
             Color green = Color.Green;
             Color white = Color.White;
 
-            float m = 4;
-
             if (value < 0)
             {
+                if (value == float.MinValue)
+                    return Color.FromArgb(60, 60, 60);
                 // Map to red shades
-                value = Math.Min(1, Math.Abs(value / m)); // Normalize value between 0-1
+                value = Math.Min(1, Math.Abs(value / max)); // Normalize value between 0-1
                 return ColorLerp(white, red, value);
             }
             else if (value > 0)
             {
                 // Map to green shades
-                value = Math.Min(1, value / m); // Normalize value between 0-1
+                value = Math.Min(1, value / max); // Normalize value between 0-1
                 return ColorLerp(white, green, value);
             }
             else

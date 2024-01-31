@@ -103,6 +103,7 @@
     <Compile Include="Components\DistanceMap.cs" />
     <Compile Include="Components\ClipperOffset.cs" />
     <Compile Include="Components\FlowLines.cs" />
+    <Compile Include="Components\GeometryFilter.cs" />
     <Compile Include="Components\import.cs" />
     <Compile Include="Components\MixMeshes.cs" />
     <Compile Include="Components\Offset.cs" />
