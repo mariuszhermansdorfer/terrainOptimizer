@@ -85,6 +85,7 @@ namespace terrainOptimizer.Components
 
             //MeshApi.DeleteMesh(m);
 
+
             Mesh newMesh = new Mesh();
             newMesh = new Mesh();
             newMesh.Vertices.Count = m.VerticesLength;

@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Graphs;
+using MeshAPI;
 using Rhino.Geometry;
-using terrainOptimizer.Helpers;
 
 namespace terrainOptimizer.Components
 {
@@ -19,7 +16,6 @@ namespace terrainOptimizer.Components
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBooleanParameter("run", "run", "", GH_ParamAccess.item);
             pManager.AddMeshParameter("mesh", "mesh", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("target", "target", "", GH_ParamAccess.item);
             pManager.AddIntegerParameter("iters", "iters", "", GH_ParamAccess.item);
@@ -29,56 +25,34 @@ namespace terrainOptimizer.Components
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddMeshParameter("MeshLib", "MeshLib", "", GH_ParamAccess.item);
+            pManager.AddMeshParameter("mesh", "mesh", "", GH_ParamAccess.item);
         }
-        IntPtr meshMR = IntPtr.Zero;
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            bool run = false;
-            DA.GetData(0, ref run);
-
 
             Mesh mesh = new Mesh();
             double target = 0;
             int iterations = 0;
             double shift = 0;
             double sharpAngle = 0;
-            DA.GetData(1, ref mesh);
-            DA.GetData(2, ref target);
-            DA.GetData(3, ref iterations);
-            DA.GetData(4, ref shift);
-            DA.GetData(5, ref sharpAngle);
-
-            if (meshMR == IntPtr.Zero)
-                meshMR = MeshApi.CreateMesh(mesh.Faces.ToIntArray(true), mesh.Faces.Count * 3, mesh.Vertices.ToFloatArray(), mesh.Vertices.Count * 3);
-            
-            var pMR = MeshApi.RemeshMesh(meshMR, (float)target, (float)shift, iterations, (float)sharpAngle);
+            DA.GetData(0, ref mesh);
+            DA.GetData(1, ref target);
+            DA.GetData(2, ref iterations);
+            DA.GetData(3, ref shift);
+            DA.GetData(4, ref sharpAngle);
 
 
-            int[] facesMR = new int[pMR.FacesLength];
-            Marshal.Copy(pMR.Faces, facesMR, 0, pMR.FacesLength);
+            var fastMesh = new FastMesh(mesh);
+            var result = fastMesh.Remesh((float)target, (float)shift, iterations, (float)sharpAngle);
 
-            float[] vertsMR = new float[pMR.VerticesLength];
-            Marshal.Copy(pMR.Vertices, vertsMR, 0, pMR.VerticesLength);
-
-
-            var resultMR = new Mesh();
-            for (int i = 0; i < pMR.FacesLength; i += 3)
-                resultMR.Faces.AddFace(facesMR[i], facesMR[i + 1], facesMR[i + 2]);
-
-            for (int i = 0; i < pMR.VerticesLength; i += 3)
-                resultMR.Vertices.Add(vertsMR[i], vertsMR[i + 1], vertsMR[i + 2]);
-
-            DA.SetData(0, resultMR);
+            DA.SetData(0, result.ToRhinoMesh());
         }
 
         protected override System.Drawing.Bitmap Icon
         {
             get
             {
-                //You can add image files to your project resources and access them like this:
-                // return Resources.IconForThisComponent;
                 return null;
             }
         }

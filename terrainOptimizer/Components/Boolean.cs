@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
+using MeshAPI;
 using Rhino.Geometry;
 using terrainOptimizer.Helpers;
 
@@ -28,7 +29,6 @@ namespace terrainOptimizer.Components
         {
             pManager.AddMeshParameter("result", "result", "", GH_ParamAccess.item);
         }
-       // IntPtr meshA = IntPtr.Zero;
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             int type = 0;
@@ -40,31 +40,13 @@ namespace terrainOptimizer.Components
             Mesh cutter = new Mesh();
             DA.GetData(2, ref cutter);
 
-            //if (meshA == IntPtr.Zero)
-              var  meshA = MeshApi.CreateMesh(baseMesh.Faces.ToIntArray(true), baseMesh.Faces.Count * 3, baseMesh.Vertices.ToFloatArray(), baseMesh.Vertices.Count * 3);
-                        
-            IntPtr meshB = MeshApi.CreateMesh(cutter.Faces.ToIntArray(true), cutter.Faces.Count * 3, cutter.Vertices.ToFloatArray(), cutter.Vertices.Count * 3);
-            var p = MeshApi.BooleanMeshes(meshA, meshB, (MeshApi.BooleanOperation)type);
             
-           // MeshApi.DeleteMesh(meshB);
-            //We should also delete meshA once it's no longer needed
-            //MeshApi.DeleteMesh(meshA);
+            var meshA = new FastMesh(baseMesh);
+            var meshB = new FastMesh(cutter);
 
-            int[] faces = new int[p.FacesLength];
-            Marshal.Copy(p.Faces, faces, 0, p.FacesLength);
+            var result = meshA.BooleanMeshes(meshB, (Structs.BooleanOperation)type);
 
-            float[] verts = new float[p.VerticesLength];
-            Marshal.Copy(p.Vertices, verts, 0, p.VerticesLength);
-
-            var result = new Mesh();
-            for (int i = 0; i < p.FacesLength; i += 3)
-                result.Faces.AddFace(faces[i], faces[i + 1], faces[i + 2]);
-
-            for (int i = 0; i < p.VerticesLength; i += 3)
-                result.Vertices.Add(verts[i], verts[i + 1], verts[i + 2]);
-            //result.RebuildNormals();
-
-            DA.SetData(0, result);
+            DA.SetData(0, result.ToRhinoMesh());
             
         }
 
