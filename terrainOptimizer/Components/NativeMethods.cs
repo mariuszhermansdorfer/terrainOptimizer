@@ -17,6 +17,9 @@ namespace MeshAPI
         internal static extern void DeleteMesh(IntPtr mesh);
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void FreeRawMeshData(ref RawMeshPointers rawMeshData);
+
+        [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr GridRemesh(IntPtr proposedMesh, float resolution);
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]

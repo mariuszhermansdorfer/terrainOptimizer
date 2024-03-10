@@ -80,6 +80,7 @@ namespace MeshAPI
                     rhinoMesh.ReleaseUnsafeLock(meshAccess);
                 }
             }
+            NativeMethods.FreeRawMeshData(ref pointers);
             return rhinoMesh;
         }
 
