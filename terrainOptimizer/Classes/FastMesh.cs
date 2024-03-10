@@ -125,6 +125,13 @@ namespace MeshAPI
             return new FastMesh(resultPointer);
         }
 
+        public static FastMesh MinimalSurface(Curve inputCurve, float edgeLength)
+        {
+            var coordinates = Helpers.GetCurveCoordinates(inputCurve);
+            IntPtr resultPointer = NativeMethods.MinimalSurface(coordinates, coordinates.Length, edgeLength);
+            return new FastMesh(resultPointer);
+        }
+
         public FastMesh Remesh(float targetLength, float shift, int iterations, float sharpAngle)
         {
             IntPtr remeshPointer = NativeMethods.Remesh(meshPtr, targetLength, shift, iterations, sharpAngle);

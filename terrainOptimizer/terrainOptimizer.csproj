@@ -113,7 +113,7 @@
     <Compile Include="Components\DistanceMap.cs" />
     <Compile Include="Components\ClipperOffset.cs" />
     <Compile Include="Components\EPWReader.cs" />
-    <Compile Include="Components\FastMesh.cs" />
+    <Compile Include="Classes\FastMesh.cs" />
     <Compile Include="Components\FlowLines.cs" />
     <Compile Include="Components\GeometryFilter.cs" />
     <Compile Include="Components\GridRemesh.cs" />
@@ -127,7 +127,8 @@
     <Compile Include="Components\Robo.cs" />
     <Compile Include="Components\EPWScraper.cs" />
     <Compile Include="Components\Sculpt.cs" />
-    <Compile Include="Components\SoapFilm.cs" />
+    <Compile Include="Components\MinimalSurface.cs" />
+    <Compile Include="Helpers\Helpers.cs" />
     <Compile Include="Helpers\MeshApi.cs" />
     <Compile Include="Helpers\ClipperApi.cs" />
     <Compile Include="Helpers\Structs.cs" />

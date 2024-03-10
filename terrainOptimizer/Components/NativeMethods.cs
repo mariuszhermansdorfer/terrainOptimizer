@@ -41,6 +41,9 @@ namespace MeshAPI
         internal static extern IntPtr Inflate(IntPtr mesh, int iterations, float pressure);
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr MinimalSurface(float[] coordinates, int coordinatesLength, float edgeLength);
+
+        [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr Remesh(IntPtr mesh, float targetLength, float shift, int iterations, float sharpAngle);
     }
 }
