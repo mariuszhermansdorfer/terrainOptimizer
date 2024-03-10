@@ -48,6 +48,7 @@ namespace MeshAPI
             RawMeshPointers pointers = NativeMethods.CopyMeshPointers(meshPtr);
             Mesh rhinoMesh = new Mesh();
             rhinoMesh.Vertices.Count = pointers.VerticesLength;
+            rhinoMesh.Normals.Count = pointers.VerticesLength;
             rhinoMesh.Faces.Count = pointers.FacesLength;
 
             if (pointers.FacesLength <= 0)
@@ -58,12 +59,16 @@ namespace MeshAPI
                 using (var meshAccess = rhinoMesh.GetUnsafeLock(true))
                 {
                     Point3f* startOfVertexArray = meshAccess.VertexPoint3fArray(out int vertexArrayLength);
-                    MeshFace* startOfFacesArray = meshAccess.FacesArray(out int facesArrayLength);
-                    int* sourcePtr = (int*)pointers.Faces;
-                    int* destPtr = (int*)startOfFacesArray;
+                    Vector3f* startOfNormalsArray = meshAccess.NormalVector3fArray(out int normalArrayLength);
 
                     Buffer.MemoryCopy((float*)pointers.Vertices, startOfVertexArray, vertexArrayLength * sizeof(Point3f), pointers.VerticesLength * sizeof(float) * 3);
+                    Buffer.MemoryCopy((float*)pointers.Normals, startOfNormalsArray, vertexArrayLength * sizeof(Vector3f), pointers.VerticesLength * sizeof(float) * 3);
 
+                    MeshFace* startOfFacesArray = meshAccess.FacesArray(out int facesArrayLength);
+                    
+                    int* sourcePtr = (int*)pointers.Faces;
+                    int* destPtr = (int*)startOfFacesArray;
+                    
                     for (int i = 0; i < pointers.FacesLength; i++)
                     {
                         *destPtr++ = *sourcePtr++;
@@ -75,7 +80,6 @@ namespace MeshAPI
                     rhinoMesh.ReleaseUnsafeLock(meshAccess);
                 }
             }
-
             return rhinoMesh;
         }
 

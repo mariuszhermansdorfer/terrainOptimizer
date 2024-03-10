@@ -34,6 +34,7 @@ public struct RawMeshPointers
     public int FacesLength;
     public IntPtr Vertices;
     public int VerticesLength;
+    public IntPtr Normals;
 };
 
 [StructLayout(LayoutKind.Sequential)]
