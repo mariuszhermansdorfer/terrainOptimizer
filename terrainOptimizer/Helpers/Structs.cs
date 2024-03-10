@@ -37,7 +37,18 @@ namespace MeshAPI
             public int FacesLength;
             public IntPtr Vertices;
             public int VerticesLength;
+            public IntPtr Normals;
         };
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct AdditionalMeshData
+        {
+            public IntPtr VertexValues;
+            public int VerticesLength;
+            public float Fill;
+            public float Cut;
+        }
+
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RawPolylinePointers

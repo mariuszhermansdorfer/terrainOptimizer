@@ -2,8 +2,8 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
+using MeshAPI;
 using Rhino.Geometry;
-using terrainOptimizer.Helpers;
 
 namespace terrainOptimizer.Components
 {
@@ -44,46 +44,18 @@ namespace terrainOptimizer.Components
             DA.GetData(2, ref resolution);
             DA.GetData(3, ref maxDistance);
 
+            var meshA = new FastMesh(existing);
+            var meshB = new FastMesh(proposed);
 
-            var faces = proposed.Faces.ToIntArray(true);
-            var vertices = proposed.Vertices.ToFloatArray();
+            var difference = meshA.DistanceBetweenMeshes(meshB, (float)resolution, out float[] vertexValues, out float cut, out float fill);
 
-            var faces1 = existing.Faces.ToIntArray(true);
-            var vertices1 = existing.Vertices.ToFloatArray();
+            _result = difference.ToRhinoMesh();
+            for (int i = 0; i < _result.Vertices.Count; i++)
+                _result.VertexColors.Add(FloatToColor(vertexValues[i], (float)maxDistance));
 
-            System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
+            Rhino.RhinoApp.WriteLine($"Cut: {Math.Round(cut, 2)} m3 | Fill: {Math.Round(fill, 2)} m3 | Balance: {Math.Round(cut + fill, 2)} m3");
 
-            var meshProposed = MeshApi.CreateMesh(faces, faces.Length, vertices, vertices.Length);
-            var meshExisting = MeshApi.CreateMesh(faces1, faces1.Length, vertices1, vertices1.Length);
-            sw.Restart();
-            var pMR = MeshApi.Distance(meshProposed, meshExisting, (float)resolution);
-            sw.Stop();
-
-            int[] resultFaces = new int[pMR.FacesLength];
-            Marshal.Copy(pMR.Faces, resultFaces, 0, pMR.FacesLength);
-
-            float[] resultVertices = new float[pMR.VerticesLength];
-            Marshal.Copy(pMR.Vertices, resultVertices, 0, pMR.VerticesLength);
-
-            float[] resultValues = new float[pMR.VertexValuesLength];
-            Marshal.Copy(pMR.VertexValues, resultValues, 0, pMR.VertexValuesLength);
-
-
-            _result = new Mesh();
-            for (int i = 0; i < pMR.FacesLength; i += 3)
-                _result.Faces.AddFace(resultFaces[i], resultFaces[i + 1], resultFaces[i + 2]);
-
-            for (int i = 0; i < pMR.VerticesLength; i += 3)
-                _result.Vertices.Add(resultVertices[i], resultVertices[i + 1], resultVertices[i + 2]);
-
-            for (int i = 0; i < pMR.VertexValuesLength; i++)
-                _result.VertexColors.Add(FloatToColor(resultValues[i], (float)maxDistance));
-
-            Rhino.RhinoApp.WriteLine($"Cut: {Math.Round(pMR.Cut, 2)} m3 | Fill: {Math.Round(pMR.Fill, 2)} m3 | Balance: {Math.Round(pMR.Cut + pMR.Fill, 2)} m3");
-            _result.UnifyNormals();
-            _result.Translate(new Vector3d(0, 0, 0.1));
-
-           // DA.SetData(0, _result);
+            DA.SetData(0, _result);
         }
 
         public override void DrawViewportMeshes(IGH_PreviewArgs args)

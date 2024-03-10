@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Rhino.Geometry;
+using static MeshAPI.Structs;
 
 
 namespace MeshAPI
@@ -45,7 +47,7 @@ namespace MeshAPI
 
         public Mesh ToRhinoMesh()
         {
-            RawMeshPointers pointers = NativeMethods.CopyMeshPointers(meshPtr);
+            Structs.RawMeshPointers pointers = NativeMethods.CopyMeshPointers(meshPtr);
             Mesh rhinoMesh = new Mesh();
             rhinoMesh.Vertices.Count = pointers.VerticesLength;
             rhinoMesh.Normals.Count = pointers.VerticesLength;
@@ -91,6 +93,20 @@ namespace MeshAPI
             return new FastMesh(booleanResultPointer);
         }
 
+        public FastMesh DistanceBetweenMeshes(FastMesh proposedMesh, float resolution, out float[] vertexValues, out float cut, out float fill)
+        {
+            IntPtr distanceMeshPtr = NativeMethods.DistanceBetweenMeshes(meshPtr, proposedMesh.meshPtr, resolution, out AdditionalMeshData meshData);
+
+            cut = meshData.Cut;
+            fill = meshData.Fill;
+
+            vertexValues = new float[meshData.VerticesLength];
+            Marshal.Copy(meshData.VertexValues, vertexValues, 0, meshData.VerticesLength);
+            NativeMethods.FreeAdditionalMeshData(ref meshData);
+
+            return new FastMesh(distanceMeshPtr);
+        }
+
         public FastMesh EmbedMesh(FastMesh newMesh, float fillAngle, float cutAngle, float anglePrecision)
         {
             IntPtr gridMeshPointer = NativeMethods.EmbedMesh(meshPtr, newMesh.meshPtr, fillAngle, cutAngle, anglePrecision);
@@ -101,6 +117,12 @@ namespace MeshAPI
         {
             IntPtr gridMeshPointer = NativeMethods.GridRemesh(meshPtr, resolution);
             return new FastMesh(gridMeshPointer);
+        }
+
+        public FastMesh Inflate(int iterations, float pressure)
+        {
+            IntPtr resultPointer = NativeMethods.Inflate(meshPtr, iterations, pressure);
+            return new FastMesh(resultPointer);
         }
 
         public FastMesh Remesh(float targetLength, float shift, int iterations, float sharpAngle)

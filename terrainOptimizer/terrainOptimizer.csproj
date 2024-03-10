@@ -119,6 +119,7 @@
     <Compile Include="Components\GridRemesh.cs" />
     <Compile Include="Components\import.cs" />
     <Compile Include="Components\EmbedMesh.cs" />
+    <Compile Include="Components\Inflate.cs" />
     <Compile Include="Components\NativeMethods.cs" />
     <Compile Include="Components\Offset.cs" />
     <Compile Include="Components\RayCast.cs" />
