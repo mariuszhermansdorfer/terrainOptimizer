@@ -88,21 +88,24 @@ namespace MeshAPI
         public FastMesh BooleanMeshes(FastMesh cutterMesh, Structs.BooleanOperation operation)
         {
             IntPtr booleanResultPointer = NativeMethods.BooleanMeshes(meshPtr, cutterMesh.meshPtr, operation);
-
             return new FastMesh(booleanResultPointer);
+        }
+
+        public FastMesh EmbedMesh(FastMesh newMesh, float fillAngle, float cutAngle, float anglePrecision)
+        {
+            IntPtr gridMeshPointer = NativeMethods.EmbedMesh(meshPtr, newMesh.meshPtr, fillAngle, cutAngle, anglePrecision);
+            return new FastMesh(gridMeshPointer);
         }
 
         public FastMesh GridRemesh(float resolution)
         {
             IntPtr gridMeshPointer = NativeMethods.GridRemesh(meshPtr, resolution);
-
             return new FastMesh(gridMeshPointer);
         }
 
         public FastMesh Remesh(float targetLength, float shift, int iterations, float sharpAngle)
         {
             IntPtr remeshPointer = NativeMethods.Remesh(meshPtr, targetLength, shift, iterations, sharpAngle);
-
             return new FastMesh(remeshPointer);
         }
 

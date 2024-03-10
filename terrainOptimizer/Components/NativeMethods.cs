@@ -18,12 +18,18 @@ namespace MeshAPI
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void FreeRawMeshData(ref RawMeshPointers rawMeshData);
+        
 
-        [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr GridRemesh(IntPtr proposedMesh, float resolution);
+
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr BooleanMeshes(IntPtr meshA, IntPtr meshb, Structs.BooleanOperation operation);
+
+        [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr EmbedMesh(IntPtr meshA, IntPtr meshb, float fillAngle, float cutAngle, float anglePrecision);
+
+        [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr GridRemesh(IntPtr proposedMesh, float resolution);
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr Remesh(IntPtr mesh, float targetLength, float shift, int iterations, float sharpAngle);
