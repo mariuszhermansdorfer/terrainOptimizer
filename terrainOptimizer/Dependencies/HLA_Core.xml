@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>HLA_Core</name>
+    </assembly>
+    <members>
+        <member name="M:HLA_Core.FileIO.RemoteServer.DownloadFileAsync(System.String,System.String)">
+            <summary>
+            Asynchronously downloads a file from a specified URL and saves it to a local path.
+            </summary>
+            <param name="fileUrl">The URL of the file to download. This should be a valid and accessible URL pointing to the file resource.</param>
+            <param name="localPath">The local file system path where the downloaded file should be saved. This includes both the directory path and the filename. If the directory does not exist, it must be created before calling this method. The method will overwrite any existing file with the same name without warning.</param>
+            <returns>A task that represents the asynchronous download operation. The task will complete when the file has been fully downloaded and written to the local path.</returns>
+            <exception cref="T:System.Net.Http.HttpRequestException">Thrown if the request fails due to an HTTP protocol error or a request cancellation.</exception>
+            <exception cref="T:System.IO.IOException">Thrown if an I/O error occurs when opening the file, such as the file being used by another process, or access permissions are not sufficient.</exception>
+            <remarks>
+            This method uses <see cref="T:System.Net.Http.HttpClient"/> to fetch the file content and writes it to the specified local path using a <see cref="T:System.IO.FileStream"/>. Ensure that the application has the necessary permissions to write to the specified location. It's also important to handle exceptions that may arise from HTTP errors or file system restrictions.
+            </remarks>
+        </member>
+        <member name="T:HLA_Core.Microclimate.EPW_Files.EPWDataSources">
+            <summary>
+            Represents a data source for EPW (EnergyPlus Weather) files, including metadata about the source.
+            </summary>
+        </member>
+        <member name="M:HLA_Core.Microclimate.EPW_Files.RetrieveClosestEPWDataSource(Rhino.Geometry.Point3d)">
+            <summary>
+            Retrieves and processes the closest EPW data source to a specified reference point. 
+            This involves loading EPW data sources from a predefined path, identifying the closest source 
+            based on geographic proximity to the reference point, and downloading and extracting 
+            the corresponding EPW file to a specified destination.
+            </summary>
+            <param name="referencePoint">The geographic point used as a reference to find the closest EPW data source.</param>
+            <returns>The name of the closest EPW data source if the download and extraction are successful; otherwise, "Not found".</returns>
+        </member>
+        <member name="M:HLA_Core.Microclimate.EPW_Files.LoadDataSources(System.String)">
+            <summary>
+            Loads and aggregates EPW data sources from JSON files located at the specified input path.
+            </summary>
+            <param name="inputPath">The directory path where the JSON files are stored.</param>
+            <returns>A list of EPWDataSources objects loaded from all the JSON files in the specified directory.</returns>
+        </member>
+        <member name="M:HLA_Core.Microclimate.EPW_Files.FindClosestDataSource(System.Collections.Generic.List{HLA_Core.Microclimate.EPW_Files.EPWDataSources},Rhino.Geometry.Point3d)">
+            <summary>
+            Finds the EPW data source closest to a given reference point.
+            </summary>
+            <param name="dataSources">A list of EPWDataSources to search within.</param>
+            <param name="referencePoint">The reference point used to find the closest data source.</param>
+            <returns>The EPWDataSources object that is closest to the given reference point.</returns>
+            <remarks>
+            This method calculates the closest data source based on geographic coordinates and selects the most recent year if multiple sources are at the same location.
+            </remarks>
+        </member>
+        <member name="M:HLA_Core.Microclimate.EPW_Files.ExtractYearFromUrl(System.String)">
+            <summary>
+            Extracts the year from the URL of an EPW file.
+            </summary>
+            <param name="url">The URL of the EPW file.</param>
+            <returns>The year extracted from the URL if present; otherwise, 0.</returns>
+            <remarks>
+            This method assumes the year is formatted as a four-digit number at the end of the URL before the ".zip" extension.
+            </remarks>
+        </member>
+        <member name="M:HLA_Core.Microclimate.EPW_Files.DownloadAndExtractDataSource(HLA_Core.Microclimate.EPW_Files.EPWDataSources,System.String)">
+            <summary>
+            Downloads and extracts the EPW file associated with a specified data source into a target directory. 
+            If the target directory for extraction already exists, indicating prior download and extraction, 
+            the process is skipped to avoid redundancy. The method creates the target directory if it does not exist.
+            </summary>
+            <param name="dataSource">The EPW data source containing the URL to the file to be downloaded.</param>
+            <param name="targetPath">The base path where the EPW file will be downloaded and extracted. 
+            The extracted contents will be placed in a subdirectory named after the EPW file, sans extension.</param>
+            <returns>The name of the file (sans extension) if the download and extraction are successful; otherwise, "Not found". 
+            Returns the file name immediately if the extraction directory already exists.</returns>
+            <remarks>
+            This method synchronously waits on the asynchronous download task, potentially blocking the calling thread. 
+            In the case of download or extraction failure, or if an exception is thrown, "Not found." is returned.
+            </remarks>
+        </member>
+    </members>
+</doc>
