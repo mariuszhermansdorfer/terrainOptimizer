@@ -14,9 +14,6 @@ namespace MeshAPI
             else
                 inputPolyline = inputCurve.ToPolyline(-1, -1, 0.1, 0.1, 6, 0.001, 0.001, 0.5, true).ToPolyline();
 
-            if (inputCurve.IsClosed)
-                inputPolyline.RemoveAt(inputPolyline.Count - 1);
-
             float[] coordinates = new float[inputPolyline.Count * 3];
             for (int i = 0; i < inputPolyline.Count; i++)
             {

@@ -102,17 +102,9 @@ namespace terrainOptimizer.Helpers
 
 
         [DllImport("MRMesh.dll")]
-        public static extern RawMeshPointers MixMeshes(IntPtr meshA, IntPtr meshb, float fillAngle, float cutAngle, float anglePrecision);
-
-        [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays CutMeshWithPolyline(IntPtr meshA, float[] coordinates, int coordinatesLength, CuttingOperation direction);
 
-        //[DllImport("MRMesh.dll")]
-        //public static extern RawMeshArrays RemeshMesh(IntPtr mesh, float targetLength, float shift, int iterations, float sharpAngle);
-
-        [DllImport("MRMesh.dll")]
-        public static extern RawMeshArrays Distance(IntPtr proposedMesh, IntPtr baseMesh, float resolution);
-
+       
         [DllImport("MRMesh.dll")]
         public static extern RawPolylineArrays CreateContours(IntPtr mesh, float interval, bool showLabels, float spacing);
 
@@ -125,8 +117,6 @@ namespace terrainOptimizer.Helpers
         [DllImport("MRMesh.dll")]
         public static extern RawMeshArrays Sculpt(IntPtr mesh, float[] coordinates, float radius);
 
-        [DllImport("MRMesh.dll")]
-        public static extern RawMeshArrays SoapFilm(float[] coordinates, int coordinatesLength, float edgeLength, int iterations, float pressure);
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr GridRemesh(IntPtr proposedMesh, float resolution);

@@ -93,6 +93,13 @@ namespace MeshAPI
             return new FastMesh(booleanResultPointer);
         }
 
+        public FastMesh CutWithPolyline(Curve inputCurve, Structs.CuttingOperation direction, bool project)
+        {
+            var coordinates = Helpers.GetCurveCoordinates(inputCurve);
+            IntPtr resultPointer = NativeMethods.CutWithPolyline(meshPtr, coordinates, coordinates.Length, direction, project);
+            return new FastMesh(resultPointer);
+        }
+
         public FastMesh DistanceBetweenMeshes(FastMesh proposedMesh, float resolution, out float[] vertexValues, out float cut, out float fill)
         {
             IntPtr distanceMeshPtr = NativeMethods.DistanceBetweenMeshes(meshPtr, proposedMesh.meshPtr, resolution, out AdditionalMeshData meshData);

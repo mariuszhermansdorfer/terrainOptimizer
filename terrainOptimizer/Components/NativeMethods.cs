@@ -27,7 +27,10 @@ namespace MeshAPI
 
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr BooleanMeshes(IntPtr meshA, IntPtr meshb, Structs.BooleanOperation operation);
-        
+
+        [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr CutWithPolyline(IntPtr mesh, float[] coordinates, int coordinatesLength, Structs.CuttingOperation direction, bool project);
+
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr DistanceBetweenMeshes(IntPtr baseMesh, IntPtr proposedMesh, float resolution, out AdditionalMeshData extraData);
 
