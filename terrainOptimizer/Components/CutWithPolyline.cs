@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Linq;
-using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
 using MeshAPI;
 using Rhino.Geometry;
-using terrainOptimizer.Helpers;
 
 namespace terrainOptimizer
 {
@@ -27,8 +24,6 @@ namespace terrainOptimizer
         {
             pManager.AddMeshParameter("result", "result", "", GH_ParamAccess.item);
         }
-
-
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
