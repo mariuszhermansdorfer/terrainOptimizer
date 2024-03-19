@@ -3,7 +3,7 @@ using Rhino.Geometry;
 using Grasshopper.Kernel;
 using terrainOptimizer.Helpers;
 using System.Collections.Generic;
-using MeshAPI;
+using Geometry;
 
 
 

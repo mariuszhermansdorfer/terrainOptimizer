@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using Grasshopper.Kernel;
-using MeshAPI;
+using Geometry;
 using Rhino.Geometry;
 
 namespace terrainOptimizer.Components

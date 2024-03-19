@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 
 
-namespace MeshAPI
+namespace Geometry
 {
     public class Structs
     {

@@ -1,10 +1,10 @@
 ﻿using Rhino.Geometry;
 using System;
 using System.Runtime.InteropServices;
-using static MeshAPI.Structs;
+using static Geometry.Structs;
 
 
-namespace MeshAPI
+namespace Geometry
 {
     internal static class NativeMethods
     {

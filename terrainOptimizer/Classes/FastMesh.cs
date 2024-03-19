@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using Rhino.Geometry;
-using static MeshAPI.Structs;
+using static Geometry.Structs;
 
 
-namespace MeshAPI
+namespace Geometry
 {
     /// <summary>
     /// Represents a high-performance mesh object that interfaces with native code for advanced mesh operations. 

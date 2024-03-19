@@ -1,7 +1,7 @@
 ﻿using Rhino.Geometry;
 
 
-namespace MeshAPI
+namespace Geometry
 {
     internal class Helpers
     {
