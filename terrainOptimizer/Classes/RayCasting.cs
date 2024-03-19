@@ -35,10 +35,10 @@ namespace MeshAPI
         /// <returns>An array of Point3d representing the intersection points for each ray cast.</returns>
         public static Point3d[] RayCastIntersections(FastMesh mesh, Point3d[] samplesArray, Vector3d[] directionsArray, bool useGPU)
         {
-            Point3d[] intersectionsPoints = new Point3d[samplesArray.Length * directionsArray.Length];
-            NativeMethods.RayCast(mesh.NativeMeshPointer, samplesArray, samplesArray.Length, directionsArray, directionsArray.Length, useGPU, null, intersectionsPoints);
+            Point3d[] intersectionPoints = new Point3d[samplesArray.Length * directionsArray.Length];
+            NativeMethods.RayCast(mesh.NativeMeshPointer, samplesArray, samplesArray.Length, directionsArray, directionsArray.Length, useGPU, null, intersectionPoints);
 
-            return intersectionsPoints;
+            return intersectionPoints;
         }
     }
 }

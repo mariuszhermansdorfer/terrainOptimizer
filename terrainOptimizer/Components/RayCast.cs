@@ -45,8 +45,8 @@ namespace terrainOptimizer.Components
             DA.GetData(3, ref useGPU);
 
             var mesh = new FastMesh(contextMesh);
-            var result = RayCasting.RayCastOcclusions(mesh, samples.ToArray(), directions.ToArray(), useGPU);
-            var res = RayCasting.RayCastIntersections(mesh, samples.ToArray(), directions.ToArray(), useGPU);
+            var occlusions = RayCasting.RayCastOcclusions(mesh, samples.ToArray(), directions.ToArray(), useGPU);
+            var intersectionPoints = RayCasting.RayCastIntersections(mesh, samples.ToArray(), directions.ToArray(), useGPU);
 
             //DA.SetDataList(0, result);
 
