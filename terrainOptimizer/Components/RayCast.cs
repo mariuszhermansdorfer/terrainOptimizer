@@ -3,6 +3,7 @@ using Rhino.Geometry;
 using Grasshopper.Kernel;
 using terrainOptimizer.Helpers;
 using System.Collections.Generic;
+using MeshAPI;
 
 
 
@@ -43,8 +44,9 @@ namespace terrainOptimizer.Components
             DA.GetDataList(2, directions);
             DA.GetData(3, ref useGPU);
 
-            var mesh = MeshApi.CreateMRMesh(contextMesh);
-            var result = MeshApi.ShootManyToMany(mesh, samples.ToArray(), directions.ToArray(), useGPU);
+            var mesh = new FastMesh(contextMesh);
+            var result = RayCasting.RayCastOcclusions(mesh, samples.ToArray(), directions.ToArray(), useGPU);
+            var res = RayCasting.RayCastIntersections(mesh, samples.ToArray(), directions.ToArray(), useGPU);
 
             //DA.SetDataList(0, result);
 

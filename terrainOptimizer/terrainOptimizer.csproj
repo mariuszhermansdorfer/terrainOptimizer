@@ -107,6 +107,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Classes\RayCasting.cs" />
     <Compile Include="Components\Boolean.cs" />
     <Compile Include="Components\CutWithPolyline.cs" />
     <Compile Include="Components\ContourLines.cs" />
@@ -117,6 +118,7 @@
     <Compile Include="Components\FlowLines.cs" />
     <Compile Include="Components\GeometryFilter.cs" />
     <Compile Include="Components\GridRemesh.cs" />
+    <Compile Include="Components\GridRemeshWithCurve.cs" />
     <Compile Include="Components\import.cs" />
     <Compile Include="Components\EmbedMesh.cs" />
     <Compile Include="Components\Inflate.cs" />

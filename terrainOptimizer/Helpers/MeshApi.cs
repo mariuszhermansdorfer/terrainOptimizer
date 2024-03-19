@@ -121,19 +121,6 @@ namespace terrainOptimizer.Helpers
         [DllImport("MRMesh.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr GridRemesh(IntPtr proposedMesh, float resolution);
 
-        [DllImport("MRCuda.dll")]
-        private static extern IntPtr ShootManyToMany(IntPtr mesh, Point3d[] samplesArray, int samplesLength, Vector3d[] directionsArray, int directionsLength, bool useGPU);
-
-        public static float[] ShootManyToMany(IntPtr mesh, Point3d[] samplesArray, Vector3d[] directionsArray, bool useGPU)
-        {
-            float[] results = new float[samplesArray.Length];
-
-            IntPtr pointer = ShootManyToMany(mesh, samplesArray, samplesArray.Length, directionsArray, directionsArray.Length, useGPU);
-            Marshal.Copy(pointer, results, 0, samplesArray.Length);
-            FreeMemory(pointer);
-
-            return results;
-        }
 
         [DllImport("MRMesh.dll")]
         public unsafe static extern RawMeshArrays Offset(float[] coordinates, int polylineCount, int[] polylinesLength, float offset, float epsilon, int iterations, float smoothingFactor);

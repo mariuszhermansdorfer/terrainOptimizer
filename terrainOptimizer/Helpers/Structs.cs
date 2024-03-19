@@ -6,30 +6,9 @@ namespace MeshAPI
 {
     public class Structs
     {
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RawMeshArrays
-        {
-            public IntPtr Faces;
-            public int FacesLength;
-            public IntPtr Vertices;
-            public int VerticesLength;
-            public IntPtr VertexValues;
-            public int VertexValuesLength;
-            public float Cut;
-            public float Fill;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RawPolylineArrays
-        {
-            public IntPtr ContourVertices;
-            public IntPtr ContourVerticesLengths;
-            public int ContourCount;
-            public IntPtr LabelVertices;
-            public IntPtr LabelNormals;
-            public int LabelCount;
-        }
-
+        /// <summary>
+        /// Represents mesh pointers specifically for faces, vertices, and normals, including lengths for faces and vertices.
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct RawMeshPointers
         {
@@ -40,6 +19,9 @@ namespace MeshAPI
             public IntPtr Normals;
         };
 
+        /// <summary>
+        /// Holds additional mesh data including pointers to vertex values, vertices length, and parameters for fill and cut.
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct AdditionalMeshData
         {
@@ -49,14 +31,9 @@ namespace MeshAPI
             public float Cut;
         }
 
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RawPolylinePointers
-        {
-            public IntPtr Vertices;
-            public int VerticesLength;
-        };
-
+        /// <summary>
+        /// Enumerates types of boolean operations that can be performed with meshes, including various inside/outside and set operations.
+        /// </summary>
         public enum BooleanOperation
         {
             InsideA,
@@ -69,6 +46,12 @@ namespace MeshAPI
             DifferenceAB
         }
 
-        public enum CuttingOperation { DeleteInside, DeleteOutside, None }
+        /// <summary>
+        /// Enumerates types of cutting operations that can be applied to meshes, specifying how the cut influences the mesh data.
+        /// </summary>
+        public enum CuttingOperation { 
+            DeleteInside, 
+            DeleteOutside, 
+            None }
     }
 }

@@ -39,8 +39,8 @@ namespace terrainOptimizer
             var mesh = new FastMesh(baseMesh);
             var result = mesh.CutWithPolyline(breakline, (Structs.CuttingOperation)direction, project);
 
-            DA.SetData(0, result.ToRhinoMesh());
 
+            DA.SetData(0, result.ToRhinoMesh());
         }
 
 

@@ -51,6 +51,8 @@ namespace terrainOptimizer.Components
 
             var result = meshA.EmbedMesh(meshB, (float)fillAngle, (float)cutAngle, (float)anglePrecision);
 
+            var r = result.ToRhinoMesh();
+
             DA.SetData(0, result.ToRhinoMesh());
         }
 
